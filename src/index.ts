@@ -1,3 +1,8 @@
+import "dotenv/config";
+import express, { Application } from "express";
+import swaggerUi from "swagger-ui-express";     
+import YAML from "yamljs";                        
+import healthRouter from "./routes/health";
 import app from "./app";
 
 const PORT = 3001;
