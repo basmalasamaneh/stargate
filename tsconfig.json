@@ -41,5 +41,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "exclude": ["**/*.test.ts"]
+  "exclude": ["**/*.test.ts", "dist"]
 }
