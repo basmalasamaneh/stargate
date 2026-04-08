@@ -1,4 +1,3 @@
-import "dotenv/config";
 import express, { Application } from "express";
 import swaggerUi from "swagger-ui-express";     
 import YAML from "yamljs";                        

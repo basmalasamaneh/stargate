@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/index.ts",
+    "dev": "nodemon --watch src --watch swagger.yaml --ext ts,json,yaml --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "jest",
@@ -30,9 +30,16 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/jsonwebtoken": "^9.0.10",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "swagger-ui-express": "^5.0.1",
-    "yamljs": "^0.3.0"
+    "yamljs": "^0.3.0",
+    "zod": "^4.3.6"
   }
 }
