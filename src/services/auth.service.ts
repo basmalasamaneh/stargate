@@ -1,16 +1,12 @@
-import { createClient } from "@supabase/supabase-js";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import type { SignupInput } from "../types/auth.types";
-
-const supabase = createClient(
-  process.env["SUPABASE_URL"]!,
-  process.env["SUPABASE_SERVICE_ROLE_KEY"]!
-);
+import { getSupabase } from "../config/supabase";
 
 export const signupUser = async (input: SignupInput) => {
-  const { firstName, lastName, email, password } = input;
+  const { firstName, lastName, password } = input;
+  const email = input.email.toLowerCase();
+  const supabase = getSupabase();
 
   // Check if email already exists
   const { data: existing } = await supabase

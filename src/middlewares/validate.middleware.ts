@@ -5,7 +5,7 @@ export const signupSchema = z
   .object({
     firstName: z.string().min(2, "First name must be at least 2 characters"),
     lastName: z.string().min(2, "Last name must be at least 2 characters"),
-    email: z.string().email("Invalid email address"),
+    email: z.string().toLowerCase().email("Invalid email address"),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")
@@ -14,7 +14,7 @@ export const signupSchema = z
       .regex(/[0-9]/, "Password must contain at least one number"),
     confirmPassword: z.string(),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine((data: { password: string; confirmPassword: string }) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
@@ -26,7 +26,7 @@ export const validate =
     if (!result.success) {
       res.status(400).json({
         status: "error",
-        errors: result.error.issues.map((e) => ({
+        errors: result.error.issues.map((e: z.ZodIssue) => ({
           field: e.path.join("."),
           message: e.message,
         })),

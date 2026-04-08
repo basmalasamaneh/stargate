@@ -1,11 +1,18 @@
 import "dotenv/config";
 import express, { Application } from "express";
+import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import healthRouter from "./routes/health";
 import authRouter from "./routes/auth.routes";
 
 const app: Application = express();
+
+// Enable CORS for frontend
+app.use(cors({
+  origin: "http://localhost:3000",
+  credentials: true
+}));
 
 app.use(express.json());
 
