@@ -5,3 +5,4 @@ export interface SignupInput {
   password: string;
   confirmPassword: string;
 }
+  

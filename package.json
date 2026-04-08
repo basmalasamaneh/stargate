@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/index.ts",
+    "dev": "nodemon --watch src --watch swagger.yaml --ext ts,json,yaml --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "jest",

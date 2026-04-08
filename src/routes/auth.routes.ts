@@ -7,3 +7,13 @@ const router = Router();
 router.post("/signup", validate(signupSchema), signup);
 
 export default router;
+
+
+
+
+
+
+
+
+
+
