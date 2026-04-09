@@ -19,6 +19,11 @@ export const signupSchema = z
     path: ["confirmPassword"],
   });
 
+export const loginSchema = z.object({
+  email: z.string().toLowerCase().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
 export const validate =
   (schema: ZodSchema) =>
   (req: Request, res: Response, next: NextFunction): void => {

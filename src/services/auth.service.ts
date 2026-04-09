@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import type { SignupInput } from "../types/auth.types";
+import type { LoginInput, SignupInput } from "../types/auth.types";
 import { getSupabase } from "../config/supabase";
 
 export const signupUser = async (input: SignupInput) => {
@@ -8,7 +8,6 @@ export const signupUser = async (input: SignupInput) => {
   const email = input.email.toLowerCase();
   const supabase = getSupabase();
 
-  // Check if email already exists
   const { data: existing } = await supabase
     .from("users")
     .select("id")
@@ -21,10 +20,8 @@ export const signupUser = async (input: SignupInput) => {
     throw error;
   }
 
-  // Hash the password
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  // Insert new user
   const { data: user, error: dbError } = await supabase
     .from("users")
     .insert({
@@ -39,14 +36,43 @@ export const signupUser = async (input: SignupInput) => {
 
   if (dbError) throw new Error(dbError.message);
 
-  // Generate JWT token
-  const jwtSecret = process.env["JWT_SECRET"] ?? "dev-secret";
+  const token = createJwtToken(user as any);
+  return { token, user };
+};
 
-  const token = jwt.sign(
-    { userId: (user as any).id, email: (user as any).email, role: (user as any).role },
+export const loginUser = async (input: LoginInput) => {
+  const email = input.email.toLowerCase();
+  const supabase = getSupabase();
+
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("id, email, role, password")
+    .eq("email", email)
+    .single();
+
+  if (error || !user) {
+    const authError = new Error("Invalid email or password");
+    (authError as any).statusCode = 401;
+    throw authError;
+  }
+
+  const passwordMatches = await bcrypt.compare(input.password, user.password);
+  if (!passwordMatches) {
+    const authError = new Error("Invalid email or password");
+    (authError as any).statusCode = 401;
+    throw authError;
+  }
+
+  const token = createJwtToken(user as any);
+  const { password, ...userSafe } = user as any;
+  return { token, user: userSafe };
+};
+
+const createJwtToken = (user: { id: string; email: string; role: string }) => {
+  const jwtSecret = process.env["JWT_SECRET"] ?? "dev-secret";
+  return jwt.sign(
+    { userId: user.id, email: user.email, role: user.role },
     jwtSecret,
     { expiresIn: "7d" }
   );
-
-  return { token, user };
 };
