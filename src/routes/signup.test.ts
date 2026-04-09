@@ -51,7 +51,7 @@ describe("POST /api/auth/signup", () => {
     );
   });
 
-  // Validation: missing firstName
+  // Missing firstName
   it("should return 400 when firstName is missing", async () => {
     const { firstName, ...body } = validBody;
 
@@ -67,7 +67,7 @@ describe("POST /api/auth/signup", () => {
     expect(mockSignupUser).not.toHaveBeenCalled();
   });
 
-  // Validation: missing lastName
+  // Missing lastName
   it("should return 400 when lastName is missing", async () => {
     const { lastName, ...body } = validBody;
 
@@ -83,7 +83,7 @@ describe("POST /api/auth/signup", () => {
     expect(mockSignupUser).not.toHaveBeenCalled();
   });
 
-  // Validation: invalid email format
+  // Invalid email format
   it("should return 400 when email is invalid", async () => {
     const res = await request(app)
       .post("/api/auth/signup")
@@ -99,7 +99,7 @@ describe("POST /api/auth/signup", () => {
     expect(mockSignupUser).not.toHaveBeenCalled();
   });
 
-  // Validation: password too short
+  // Password too short
   it("should return 400 when password is shorter than 8 characters", async () => {
     const res = await request(app)
       .post("/api/auth/signup")
@@ -115,7 +115,7 @@ describe("POST /api/auth/signup", () => {
     expect(mockSignupUser).not.toHaveBeenCalled();
   });
 
-  // Validation: password missing uppercase
+  // Password missing uppercase
   it("should return 400 when password has no uppercase letter", async () => {
     const res = await request(app)
       .post("/api/auth/signup")
@@ -135,7 +135,7 @@ describe("POST /api/auth/signup", () => {
     expect(mockSignupUser).not.toHaveBeenCalled();
   });
 
-  // Validation: password missing lowercase
+  // Password missing lowercase
   it("should return 400 when password has no lowercase letter", async () => {
     const res = await request(app)
       .post("/api/auth/signup")
@@ -155,7 +155,7 @@ describe("POST /api/auth/signup", () => {
     expect(mockSignupUser).not.toHaveBeenCalled();
   });
 
-  // Validation: password missing number
+  // Password missing number
   it("should return 400 when password has no number", async () => {
     const res = await request(app)
       .post("/api/auth/signup")
@@ -175,7 +175,7 @@ describe("POST /api/auth/signup", () => {
     expect(mockSignupUser).not.toHaveBeenCalled();
   });
 
-  // Validation: confirmPassword mismatch
+  // confirmPassword mismatch
   it("should return 400 when confirmPassword does not match password", async () => {
     const res = await request(app)
       .post("/api/auth/signup")
@@ -191,7 +191,7 @@ describe("POST /api/auth/signup", () => {
     expect(mockSignupUser).not.toHaveBeenCalled();
   });
 
-  // Service: duplicate email
+  // Duplicate email
   it("should return 409 when email is already registered", async () => {
     const error = new Error("Please check your email") as any;
     error.statusCode = 409;
@@ -204,7 +204,7 @@ describe("POST /api/auth/signup", () => {
     expect(res.body.message).toBe("Please check your email");
   });
 
-  // Service: unexpected error
+  // Server error
   it("should return 500 on unexpected server error", async () => {
     mockSignupUser.mockRejectedValueOnce(new Error("Unexpected DB failure"));
 

@@ -1,9 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-let supabase: SupabaseClient | null = null;
+type GlobalWithSupabase = typeof globalThis & {
+  __supabaseClient?: SupabaseClient;
+};
 
-export function initSupabase(): SupabaseClient {
+const globalWithSupabase = globalThis as GlobalWithSupabase;
+
+function createSupabaseClient(): SupabaseClient {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -14,21 +18,22 @@ export function initSupabase(): SupabaseClient {
     );
   }
 
-  if (!supabase) {
-    supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+export function initSupabase(): SupabaseClient {
+  if (!globalWithSupabase.__supabaseClient) {
+    globalWithSupabase.__supabaseClient = createSupabaseClient();
   }
 
-  return supabase;
+  return globalWithSupabase.__supabaseClient;
 }
 
 export function getSupabase(): SupabaseClient {
-  if (!supabase) {
-    return initSupabase();
-  }
-  return supabase;
+  return initSupabase();
 }
