@@ -6,6 +6,7 @@ import YAML from "yamljs";
 import path from "path";
 import healthRouter from "./routes/health";
 import authRouter from "./routes/auth.routes";
+import usersRouter from "./routes/users.routes";
 
 const app: Application = express();
 
@@ -35,5 +36,6 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use("/api", healthRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/users", usersRouter);
 
 export default app;
