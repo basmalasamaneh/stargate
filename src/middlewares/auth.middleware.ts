@@ -20,9 +20,17 @@ export const requireAuth = (
     return;
   }
 
+  const jwtSecret = process.env["JWT_SECRET"];
+  const canUseDefaultSecret =
+    process.env["NODE_ENV"] === "test" || process.env["NODE_ENV"] === "development";
+
+  if (!jwtSecret && !canUseDefaultSecret) {
+    res.status(500).json({ status: "error", message: "Server configuration error" });
+    return;
+  }
+
   try {
-    const jwtSecret = process.env["JWT_SECRET"] ?? "dev-secret";
-    const payload = jwt.verify(token, jwtSecret) as { userId: string };
+    const payload = jwt.verify(token, jwtSecret ?? "dev-secret") as { userId: string };
     req.userId = payload.userId;
     next();
   } catch {

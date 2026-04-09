@@ -48,9 +48,13 @@ export const loginUser = async (input: LoginInput) => {
     .from("users")
     .select("id, email, role, first_name, last_name, password")
     .eq("email", email)
-    .single();
+    .maybeSingle();
 
-  if (error || !user) {
+  if (error) {
+    throw new Error(error.message ?? "Failed to fetch user");
+  }
+
+  if (!user) {
     const authError = new Error("Invalid email or password");
     (authError as any).statusCode = 401;
     throw authError;

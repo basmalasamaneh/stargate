@@ -22,7 +22,9 @@ app.use(express.json());
 
 const swaggerPath = path.resolve(__dirname, "../swagger.yaml");
 const swaggerDocument = YAML.load(swaggerPath);
-console.log("Loaded swagger paths: ", Object.keys((swaggerDocument as any).paths));
+if (process.env.NODE_ENV !== "production") {
+  console.log("Loaded swagger paths: ", Object.keys((swaggerDocument as any).paths));
+}
 
 app.get("/", (req, res) => {
   res.json({ message: "SERVER is running" });

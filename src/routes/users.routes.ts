@@ -1,10 +1,9 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/auth.middleware";
-import { deleteMe, updateMe } from "../controllers/user.controller";
+import { deleteUser } from "../controllers/user.controller";
 
 const router = Router();
 
-router.patch("/me", requireAuth, updateMe);
-router.delete("/me", requireAuth, deleteMe);
+router.delete("/me", requireAuth, deleteUser);
 
 export default router;
