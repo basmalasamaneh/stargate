@@ -264,6 +264,92 @@ paths:
                   message:
                     type: string
                     example: Internal server error
+
+  /users/become-artist:
+    patch:
+      tags:
+        - Users
+      summary: Become an artist
+      description: Upgrade user role to artist by providing artist profile information
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BecomeArtistInput'
+      responses:
+        "200":
+          description: Successfully became an artist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Successfully became an artist
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/UserResponse'
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Bio must be at least 20 characters
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Unauthorized. Please log in.
+        "409":
+          description: Already an artist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: You are already an artist.
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Internal server error
 components:
   securitySchemes:
     bearerAuth:
@@ -313,3 +399,74 @@ components:
       required:
         - email
         - password
+
+    BecomeArtistInput:
+      type: object
+      properties:
+        artistName:
+          type: string
+          minLength: 3
+          example: Basmala
+        bio:
+          type: string
+          minLength: 20
+          maxLength: 1000
+          example: I am a passionate artist specializing in digital illustrations and modern art.
+        location:
+          type: string
+          minLength: 3
+          maxLength: 255
+          example: Nablus
+        phone:
+          type: string
+          pattern: '^\d{10}$'
+          maxLength: 50
+          example: "0591234567"
+        socialMedia:
+          type: string
+          format: uri
+          maxLength: 255
+          example: https://instagram.com/batool._.sweiseh
+      required:
+        - artistName
+        - bio
+        - location
+        - phone
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        firstName:
+          type: string
+          example: maryam
+        lastName:
+          type: string
+          example: rw
+        email:
+          type: string
+          format: email
+          example: maryam@example.com
+        role:
+          type: string
+          enum: [user, artist]
+          example: artist
+        artistName:
+          type: string
+          example: Basmala
+        bio:
+          type: string
+          example: I am a passionate artist specializing in digital illustrations and modern art.
+        location:
+          type: string
+          example: Nablus
+        phone:
+          type: string
+          example: "0591234567"
+        instagram:
+          type: string
+          format: uri
+          example: https://instagram.com/batool._.sweiseh

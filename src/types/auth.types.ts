@@ -10,4 +10,12 @@ export interface LoginInput {
   email: string;
   password: string;
 }
+
+export interface BecomeArtistInput {
+  artistName: string;
+  bio: string;
+  location: string;
+  phone: string;
+  socialMedia?: string;
+}
   

@@ -24,6 +24,14 @@ export const loginSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+export const becomeArtistSchema = z.object({
+  artistName: z.string().min(3, "Artist name must be at least 3 characters"),
+  bio: z.string().min(20, "Bio must be at least 20 characters").max(1000, "Bio must not exceed 1000 characters"),
+  location: z.string().min(3, "Location must be at least 3 characters").max(255, "Location is too long"),
+  phone: z.string().regex(/^\d{10}$/, "Phone must be exactly 10 digits").max(50, "Phone number is too long"),
+  socialMedia: z.string().url("Social media must be a valid URL").max(255, "Social media URL is too long").optional(),
+});
+
 export const validate =
   (schema: ZodSchema) =>
   (req: Request, res: Response, next: NextFunction): void => {
