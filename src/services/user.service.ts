@@ -1,6 +1,61 @@
 import { getSupabase } from "../config/supabase";
 import type { BecomeArtistInput } from "../types/auth.types";
 
+export const getUserProfile = async (userId: string) => {
+  const supabase = getSupabase();
+
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("id, email, role, first_name, last_name, artist_name, bio, location, phone, social_media")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    throw new Error(error.message ?? "Failed to fetch user profile");
+  }
+
+  return user;
+};
+
+export const updateUserProfile = async (userId: string, input: BecomeArtistInput) => {
+  const supabase = getSupabase();
+
+  const { data: existingUser, error: fetchError } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  if (fetchError) {
+    throw new Error(fetchError.message ?? "Failed to fetch user");
+  }
+
+  if (existingUser.role !== "artist") {
+    const error = new Error("Only artist accounts can update artist profile fields.");
+    (error as any).statusCode = 403;
+    throw error;
+  }
+
+  const { data: user, error } = await supabase
+    .from("users")
+    .update({
+      artist_name: input.artistName,
+      bio: input.bio,
+      location: input.location,
+      phone: input.phone,
+      social_media: input.socialMedia ? JSON.stringify(input.socialMedia) : null,
+    })
+    .eq("id", userId)
+    .select("id, email, role, first_name, last_name, artist_name, bio, location, phone, social_media")
+    .single();
+
+  if (error) {
+    throw new Error(error.message ?? "Failed to update profile");
+  }
+
+  return user;
+};
+
 export const deleteUserAccount = async (userId: string) => {
   const supabase = getSupabase();
 
@@ -42,10 +97,10 @@ export const becomeArtist = async (userId: string, input: BecomeArtistInput) => 
       bio: input.bio,
       location: input.location,
       phone: input.phone,
-      social_media: input.socialMedia,
+      social_media: input.socialMedia ? JSON.stringify(input.socialMedia) : null,
     })
     .eq("id", userId)
-    .select("id, email, role, first_name, last_name, artist_name, bio, location, phone, social_media")
+    .select("id, email, role, first_name, last_name, bio, location, phone, social_media, artist_name")
     .single();
 
   if (error) {

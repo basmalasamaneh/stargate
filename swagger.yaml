@@ -216,7 +216,151 @@ paths:
                     type: string
                     example: Internal server error
 
-  /users/me:
+  /users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Get the currently authenticated user's profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User profile fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/UserResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Unauthorized
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Internal server error
+
+    patch:
+      tags:
+        - Users
+      summary: Update artist profile
+      description: Update artist profile fields for the currently authenticated artist user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BecomeArtistInput'
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Profile updated successfully
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/UserResponse'
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                          example: bio
+                        message:
+                          type: string
+                          example: Bio must be at least 20 characters
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Unauthorized
+        "403":
+          description: Forbidden (non-artist user)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Only artist accounts can update artist profile fields.
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Internal server error
+
+  /users/account:
     delete:
       tags:
         - Users
@@ -423,10 +567,26 @@ components:
           maxLength: 50
           example: "0591234567"
         socialMedia:
-          type: string
-          format: uri
-          maxLength: 255
-          example: https://instagram.com/batool._.sweiseh
+          type: array
+          items:
+            type: object
+            properties:
+              platform:
+                type: string
+                enum: [instagram, facebook, linkedin, pinterest, x]
+                example: instagram
+              url:
+                type: string
+                format: uri
+                example: https://instagram.com/batool._.sweiseh
+            required:
+              - platform
+              - url
+          example:
+            - platform: instagram
+              url: https://instagram.com/batool._.sweiseh
+            - platform: x
+              url: https://x.com/batool_sweiseh
       required:
         - artistName
         - bio
@@ -466,7 +626,24 @@ components:
         phone:
           type: string
           example: "0591234567"
-        instagram:
-          type: string
-          format: uri
-          example: https://instagram.com/batool._.sweiseh
+        socialMedia:
+          type: array
+          items:
+            type: object
+            properties:
+              platform:
+                type: string
+                enum: [instagram, facebook, linkedin, pinterest, x]
+                example: instagram
+              url:
+                type: string
+                format: uri
+                example: https://instagram.com/batool._.sweiseh
+            required:
+              - platform
+              - url
+          example:
+            - platform: instagram
+              url: https://instagram.com/batool._.sweiseh
+            - platform: x
+              url: https://x.com/batool_sweiseh

@@ -1,4 +1,8 @@
--- MIGRATION: Create users table 
+-- ============================================================
+-- FILE: CreateUserTable.sql
+-- DESC: Create users table with role-based constraints
+-- ============================================================
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS users (
@@ -13,19 +17,21 @@ CREATE TABLE IF NOT EXISTS users (
   bio           TEXT,
   location      VARCHAR(255),
   phone         VARCHAR(50),
-  social_media VARCHAR(255),
+  social_media  JSONB,
   created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+
   -- Constraints for artist role
   CHECK (role != 'artist' OR (artist_name IS NOT NULL AND LENGTH(TRIM(artist_name)) >= 3)),
   CHECK (role != 'artist' OR (bio IS NOT NULL AND LENGTH(TRIM(bio)) >= 20)),
   CHECK (role != 'artist' OR (location IS NOT NULL AND LENGTH(TRIM(location)) >= 3)),
-  CHECK (role != 'artist' OR (phone IS NOT NULL AND phone ~ '^\d{10}$')),
-  CHECK (social_media IS NULL OR social_media ~ '^https?://[^\s/$.?#].[^\s]*$')
+  CHECK (role != 'artist' OR (phone IS NOT NULL AND phone ~ '^\d{10}$'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_role     ON users(role);
+-- ── Indexes ──────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
+-- ── Auto-update updated_at ───────────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -39,3 +45,5 @@ DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
 CREATE TRIGGER trg_users_updated_at
   BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+  
