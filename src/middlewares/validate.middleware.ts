@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { z, ZodSchema } from "zod";
+import { SocialMediaPlatform } from "../types/auth.types";
 
 export const signupSchema = z
   .object({
@@ -24,13 +25,7 @@ export const loginSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-const validPlatforms = [
-  "instagram",
-  "facebook",
-  "linkedin",
-  "pinterest",
-  "x",
-];
+const validPlatforms = Object.values(SocialMediaPlatform);
 
 export const becomeArtistSchema = z.object({
   artistName: z.string().min(3, "Artist name must be at least 3 characters"),
@@ -40,7 +35,7 @@ export const becomeArtistSchema = z.object({
   socialMedia: z
     .array(
       z.object({
-        platform: z.enum(validPlatforms as [string, ...string[]], {
+        platform: z.nativeEnum(SocialMediaPlatform, {
           message: `Platform must be one of: ${validPlatforms.join(", ")}`,
         }),
         url: z.string().url("Each social media URL must be valid"),
