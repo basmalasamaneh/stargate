@@ -185,6 +185,22 @@ describe("PATCH /api/users/profile", () => {
     expect(res.body.status).toBe("error");
     expect(res.body.message).toBe("DB update profile failed");
   });
+
+  it("should return 409 when artist name is already in use", async () => {
+    const token = buildToken("user-123");
+    const conflictError = new Error("Artist name is already in use.") as any;
+    conflictError.statusCode = 409;
+    mockUpsertArtistProfile.mockRejectedValueOnce(conflictError);
+
+    const res = await request(app)
+      .patch("/api/users/profile")
+      .set("Authorization", `Bearer ${token}`)
+      .send(validBecomeArtistBody);
+
+    expect(res.status).toBe(409);
+    expect(res.body.status).toBe("error");
+    expect(res.body.message).toBe("Artist name is already in use.");
+  });
 });
 
 describe("DELETE /api/users/account", () => {

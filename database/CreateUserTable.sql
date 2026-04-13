@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- ── Indexes ──────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_artist_name_ci
+  ON users (LOWER(TRIM(artist_name)))
+  WHERE role = 'artist' AND artist_name IS NOT NULL;
 
 -- ── Auto-update updated_at ───────────────────────────────────
 CREATE OR REPLACE FUNCTION update_updated_at_column()

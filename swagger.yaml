@@ -253,6 +253,19 @@ paths:
                   message:
                     type: string
                     example: Unauthorized
+        "409":
+          description: Artist name already in use
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Artist name is already in use.
         "500":
           description: Server error
           content:
