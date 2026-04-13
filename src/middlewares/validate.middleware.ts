@@ -44,6 +44,34 @@ export const becomeArtistSchema = z.object({
     .optional(),
 });
 
+export const createArtworkSchema = z.object({
+  title: z.string().min(2, "العنوان يجب أن يكون على الأقل حرفين"),
+  description: z.string().min(10, "الوصف يجب أن يكون على الأقل 10 أحرف"),
+  category: z.enum(['لوحات فنية', 'تطريز فلسطيني', 'خزف وفخار', 'خط عربي', 'تصوير فوتوغرافي', 'نحت ومجسمات']),
+  price: z.number().positive("السعر يجب أن يكون موجبًا"),
+  quantity: z.number().int().min(0, "الكمية يجب أن تكون غير سالبة"),
+  images: z.array(z.object({
+    filename: z.string().min(1, "اسم الملف مطلوب"),
+    alt_text: z.string().optional(),
+    is_featured: z.boolean().optional()
+  })).min(1, "مطلوب صورة واحدة على الأقل").max(5, "الحد الأقصى 5 صور")
+});
+
+export const updateArtworkSchema = z.object({
+  title: z.string().min(2, "العنوان يجب أن يكون على الأقل حرفين").optional(),
+  description: z.string().min(10, "الوصف يجب أن يكون على الأقل 10 أحرف").optional(),
+  category: z.enum(['لوحات فنية', 'تطريز فلسطيني', 'خزف وفخار', 'خط عربي', 'تصوير فوتوغرافي', 'نحت ومجسمات']).optional(),
+  price: z.number().positive("السعر يجب أن يكون موجبًا").optional(),
+  quantity: z.number().int().min(0, "الكمية يجب أن تكون غير سالبة").optional(),
+  images: z.array(z.object({
+    filename: z.string().min(1, "اسم الملف مطلوب"),
+    alt_text: z.string().optional(),
+    is_featured: z.boolean().optional()
+  })).min(1, "مطلوب صورة واحدة على الأقل").max(5, "الحد الأقصى 5 صور").optional()
+}).refine(data => Object.keys(data).length > 0, {
+  message: "مطلوب تحديث حقل واحد على الأقل"
+});
+
 export const validate =
   (schema: ZodSchema) =>
   (req: Request, res: Response, next: NextFunction): void => {

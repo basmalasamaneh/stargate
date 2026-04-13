@@ -7,6 +7,7 @@ import path from "path";
 import healthRouter from "./routes/health";
 import authRouter from "./routes/auth.routes";
 import usersRouter from "./routes/users.routes";
+import artworkRouter from "./routes/artwork.routes";
 
 const app: Application = express();
 
@@ -39,5 +40,6 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use("/api", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
+app.use("/api/artworks", artworkRouter);
 
 export default app;

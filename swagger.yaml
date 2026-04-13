@@ -11,6 +11,8 @@ tags:
     description: Authentication endpoints
   - name: Users
     description: User account endpoints
+  - name: Artworks
+    description: Artwork management endpoints
 
 paths:
   /health:
@@ -413,6 +415,501 @@ paths:
                     type: string
                     example: Internal server error
 
+  /artworks:
+    post:
+      tags:
+        - Artworks
+      summary: Create new artwork
+      description: Create a new artwork (artists only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateArtworkInput'
+      responses:
+        "201":
+          description: Artwork created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Artwork created successfully
+                  data:
+                    type: object
+                    properties:
+                      artwork:
+                        $ref: '#/components/schemas/ArtworkResponse'
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                          example: title
+                        message:
+                          type: string
+                          example: Title must be at least 2 characters
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: User not authenticated
+        "403":
+          description: Forbidden - artists only
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Only artists can perform this action
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Internal server error
+
+    get:
+      tags:
+        - Artworks
+      summary: List artworks
+      description: Get all artworks with optional filtering
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [paintings, embroidery, ceramics, calligraphy, photography, sculpture]
+          description: Filter by category
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [available, sold, reserved]
+          description: Filter by status
+        - name: artist_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by artist ID
+      responses:
+        "200":
+          description: Artworks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Artworks retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      artworks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ArtworkResponse'
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Internal server error
+
+  /artworks/my-artworks:
+    get:
+      tags:
+        - Artworks
+      summary: Get my artworks
+      description: Get current artist's artworks (artists only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [paintings, embroidery, ceramics, calligraphy, photography, sculpture]
+          description: Filter by category
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [available, sold, reserved]
+          description: Filter by status
+      responses:
+        "200":
+          description: My artworks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: My artworks retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      artworks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ArtworkResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: User not authenticated
+        "403":
+          description: Forbidden - artists only
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Only artists can perform this action
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Internal server error
+
+  /artworks/{id}:
+    get:
+      tags:
+        - Artworks
+      summary: Get artwork by ID
+      description: Get a single artwork by its ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Artwork ID
+      responses:
+        "200":
+          description: Artwork retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Artwork retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      artwork:
+                        $ref: '#/components/schemas/ArtworkResponse'
+        "404":
+          description: Artwork not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Artwork not found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Internal server error
+
+    patch:
+      tags:
+        - Artworks
+      summary: Update artwork
+      description: Update an existing artwork (artists only, owner only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Artwork ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateArtworkInput'
+      responses:
+        "200":
+          description: Artwork updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Artwork updated successfully
+                  data:
+                    type: object
+                    properties:
+                      artwork:
+                        $ref: '#/components/schemas/ArtworkResponse'
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                          example: title
+                        message:
+                          type: string
+                          example: Title must be at least 2 characters
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: User not authenticated
+        "403":
+          description: Forbidden - artists only or not owner
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: You can only update your own artworks
+        "404":
+          description: Artwork not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Artwork not found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Internal server error
+
+    delete:
+      tags:
+        - Artworks
+      summary: Delete artwork
+      description: Delete an artwork (artists only, owner only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Artwork ID
+      responses:
+        "200":
+          description: Artwork deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Artwork deleted successfully
+                  data:
+                    type: object
+                    nullable: true
+                    example: null
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: User not authenticated
+        "403":
+          description: Forbidden - artists only or not owner
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: You can only delete your own artworks
+        "404":
+          description: Artwork not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Artwork not found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Internal server error
+
 components:
   securitySchemes:
     bearerAuth:
@@ -566,3 +1063,135 @@ components:
               url: https://instagram.com/batool._.sweiseh
             - platform: x
               url: https://x.com/batool_sweiseh
+
+    CreateArtworkInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+          example: "Palestinian Landscape"
+        description:
+          type: string
+          minLength: 10
+          example: "A beautiful painting depicting the Palestinian countryside with olive trees and traditional architecture."
+        category:
+          type: string
+          enum: [paintings, embroidery, ceramics, calligraphy, photography, sculpture]
+          example: paintings
+        price:
+          type: number
+          minimum: 0
+          example: 250.00
+        quantity:
+          type: integer
+          minimum: 0
+          example: 1
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              filename:
+                type: string
+                example: "artwork_123.jpg"
+              alt_text:
+                type: string
+                example: "Palestinian landscape painting"
+              is_featured:
+                type: boolean
+                example: true
+            required:
+              - filename
+          minItems: 1
+          maxItems: 5
+          example:
+            - filename: "artwork_123.jpg"
+              alt_text: "Palestinian landscape painting"
+              is_featured: true
+      required:
+        - title
+        - description
+        - category
+        - price
+        - quantity
+        - images
+
+    ArtworkResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          example: "Palestinian Landscape"
+        description:
+          type: string
+          example: "A beautiful painting depicting the Palestinian countryside with olive trees and traditional architecture."
+        category:
+          type: string
+          enum: [paintings, embroidery, ceramics, calligraphy, photography, sculpture]
+          example: paintings
+        artist_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        price:
+          type: number
+          example: 250.00
+        quantity:
+          type: integer
+          example: 1
+        status:
+          type: string
+          enum: [available, sold, reserved]
+          example: available
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T12:00:00.000Z"
+        users:
+          type: object
+          properties:
+            artist_name:
+              type: string
+              example: "Basmala Artist"
+            first_name:
+              type: string
+              example: "Basmala"
+            last_name:
+              type: string
+              example: "Samaneh"
+            location:
+              type: string
+              example: "Nablus"
+            phone:
+              type: string
+              example: "0591234567"
+        artwork_images:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+                example: "550e8400-e29b-41d4-a716-446655440002"
+              filename:
+                type: string
+                example: "artwork_123.jpg"
+              alt_text:
+                type: string
+                example: "Palestinian landscape painting"
+              is_featured:
+                type: boolean
+                example: true
+              sort_order:
+                type: integer
+                example: 0
