@@ -10,4 +10,25 @@ export interface LoginInput {
   email: string;
   password: string;
 }
+
+export enum SocialMediaPlatform {
+  INSTAGRAM = "instagram",
+  FACEBOOK = "facebook",
+  LINKEDIN = "linkedin",
+  PINTEREST = "pinterest",
+  X = "x",
+}
+
+export interface SocialMediaLink {
+  platform: SocialMediaPlatform;
+  url: string;
+}
+
+export interface BecomeArtistInput {
+  artistName: string;
+  bio: string;
+  location: string;
+  phone: string;
+  socialMedia?: SocialMediaLink[];
+}
   

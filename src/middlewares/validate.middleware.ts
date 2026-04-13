@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { z, ZodSchema } from "zod";
+import { SocialMediaPlatform } from "../types/auth.types";
 
 export const signupSchema = z
   .object({
@@ -22,6 +23,25 @@ export const signupSchema = z
 export const loginSchema = z.object({
   email: z.string().toLowerCase().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+const validPlatforms = Object.values(SocialMediaPlatform);
+
+export const becomeArtistSchema = z.object({
+  artistName: z.string().min(3, "Artist name must be at least 3 characters"),
+  bio: z.string().min(20, "Bio must be at least 20 characters").max(1000, "Bio must not exceed 1000 characters"),
+  location: z.string().min(3, "Location must be at least 3 characters").max(255, "Location is too long"),
+  phone: z.string().regex(/^\d{10}$/, "Phone must be exactly 10 digits").max(50, "Phone number is too long"),
+  socialMedia: z
+    .array(
+      z.object({
+        platform: z.nativeEnum(SocialMediaPlatform, {
+          message: `Platform must be one of: ${validPlatforms.join(", ")}`,
+        }),
+        url: z.string().url("Each social media URL must be valid"),
+      })
+    )
+    .optional(),
 });
 
 export const validate =
