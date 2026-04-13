@@ -17,28 +17,13 @@ export const getUserProfile = async (userId: string) => {
   return user;
 };
 
-export const updateUserProfile = async (userId: string, input: BecomeArtistInput) => {
+export const upsertArtistProfile = async (userId: string, input: BecomeArtistInput) => {
   const supabase = getSupabase();
-
-  const { data: existingUser, error: fetchError } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", userId)
-    .single();
-
-  if (fetchError) {
-    throw new Error(fetchError.message ?? "Failed to fetch user");
-  }
-
-  if (existingUser.role !== "artist") {
-    const error = new Error("Only artist accounts can update artist profile fields.");
-    (error as any).statusCode = 403;
-    throw error;
-  }
 
   const { data: user, error } = await supabase
     .from("users")
     .update({
+      role: "artist",
       artist_name: input.artistName,
       bio: input.bio,
       location: input.location,
@@ -69,43 +54,4 @@ export const deleteUserAccount = async (userId: string) => {
   }
 };
 
-export const becomeArtist = async (userId: string, input: BecomeArtistInput) => {
-  const supabase = getSupabase();
 
-  // First check if user is already an artist
-  const { data: existingUser, error: fetchError } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", userId)
-    .single();
-
-  if (fetchError) {
-    throw new Error(fetchError.message ?? "Failed to fetch user");
-  }
-
-  if (existingUser.role === "artist") {
-    const error = new Error("You are already an artist.");
-    (error as any).statusCode = 409;
-    throw error;
-  }
-
-  const { data: user, error } = await supabase
-    .from("users")
-    .update({
-      role: "artist",
-      artist_name: input.artistName,
-      bio: input.bio,
-      location: input.location,
-      phone: input.phone,
-      social_media: input.socialMedia ? JSON.stringify(input.socialMedia) : null,
-    })
-    .eq("id", userId)
-    .select("id, email, role, first_name, last_name, bio, location, phone, social_media, artist_name")
-    .single();
-
-  if (error) {
-    throw new Error(error.message ?? "Failed to become artist");
-  }
-
-  return user;
-};

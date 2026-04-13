@@ -270,8 +270,12 @@ paths:
     patch:
       tags:
         - Users
-      summary: Update artist profile
-      description: Update artist profile fields for the currently authenticated artist user
+      summary: Upsert artist profile
+      description: >
+        Idempotent upsert of the authenticated user's artist profile.
+        Promotes the user to the artist role if not already one, then sets all
+        provided profile fields. Calling this endpoint multiple times with the
+        same body always produces the same result.
       security:
         - bearerAuth: []
       requestBody:
@@ -333,19 +337,6 @@ paths:
                   message:
                     type: string
                     example: Unauthorized
-        "403":
-          description: Forbidden (non-artist user)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Only artist accounts can update artist profile fields.
         "500":
           description: Server error
           content:
@@ -409,91 +400,6 @@ paths:
                     type: string
                     example: Internal server error
 
-  /users/become-artist:
-    patch:
-      tags:
-        - Users
-      summary: Become an artist
-      description: Upgrade user role to artist by providing artist profile information
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/BecomeArtistInput'
-      responses:
-        "200":
-          description: Successfully became an artist
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: Successfully became an artist
-                  data:
-                    type: object
-                    properties:
-                      user:
-                        $ref: '#/components/schemas/UserResponse'
-        "400":
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Bio must be at least 20 characters
-        "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Unauthorized. Please log in.
-        "409":
-          description: Already an artist
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: You are already an artist.
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Internal server error
 components:
   securitySchemes:
     bearerAuth:
