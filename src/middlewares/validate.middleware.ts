@@ -2,75 +2,126 @@ import { Request, Response, NextFunction } from "express";
 import { z, ZodSchema } from "zod";
 import { SocialMediaPlatform } from "../types/auth.types";
 
+const artworkCategoryMap: Record<string, string> = {
+  paintings: "لوحات فنية",
+  embroidery: "تطريز فلسطيني",
+  ceramics: "خزف وفخار",
+  calligraphy: "خط عربي",
+  photography: "تصوير فوتوغرافي",
+  sculpture: "نحت ومجسمات",
+};
+
+const normalizeCategory = (category: unknown): unknown => {
+  if (typeof category !== "string") return category;
+  return artworkCategoryMap[category] ?? category;
+};
+
+const normalizedImageSchema = z
+  .union([
+    z.string().min(1, "اسم الملف مطلوب"),
+    z.object({
+      filename: z.string().min(1, "اسم الملف مطلوب").optional(),
+      url: z.string().min(1, "اسم الملف مطلوب").optional(),
+      imageUrl: z.string().min(1, "اسم الملف مطلوب").optional(),
+      alt_text: z.string().optional(),
+      altText: z.string().optional(),
+      is_featured: z.boolean().optional(),
+      isFeatured: z.boolean().optional(),
+    }),
+  ])
+  .transform((image) => {
+    if (typeof image === "string") {
+      return { filename: image, alt_text: undefined, is_featured: false };
+    }
+
+    const filename = image.filename ?? image.url ?? image.imageUrl;
+    return {
+      filename,
+      alt_text: image.alt_text ?? image.altText,
+      is_featured: image.is_featured ?? image.isFeatured ?? false,
+    };
+  })
+  .refine((image) => !!image.filename, {
+    message: "اسم الملف مطلوب",
+  });
+
+const normalizeArtworkBody = (input: unknown) => {
+  if (!input || typeof input !== "object") return input;
+
+  const body = { ...(input as Record<string, unknown>) };
+  body.category = normalizeCategory(body.category);
+
+  if (body.images === undefined) {
+    const singleImage = body.image ?? body.imageUrl ?? body.filename;
+    if (singleImage) {
+      body.images = [singleImage];
+    }
+  }
+
+  return body;
+};
+
 export const signupSchema = z
   .object({
-    firstName: z.string().min(2, "First name must be at least 2 characters"),
-    lastName: z.string().min(2, "Last name must be at least 2 characters"),
-    email: z.string().toLowerCase().email("Invalid email address"),
+    firstName: z.string().min(2, "الاسم الأول يجب أن يتكون من حرفين على الأقل"),
+    lastName: z.string().min(2, "اسم العائلة يجب أن يتكون من حرفين على الأقل"),
+    email: z.string().toLowerCase().email("البريد الإلكتروني غير صالح"),
     password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-      .regex(/[0-9]/, "Password must contain at least one number"),
+      .min(8, "كلمة المرور يجب أن تتكون من 8 أحرف على الأقل")
+      .regex(/[A-Z]/, "كلمة المرور يجب أن تحتوي على حرف إنجليزي كبير واحد على الأقل")
+      .regex(/[a-z]/, "كلمة المرور يجب أن تحتوي على حرف إنجليزي صغير واحد على الأقل")
+      .regex(/[0-9]/, "كلمة المرور يجب أن تحتوي على رقم واحد على الأقل"),
     confirmPassword: z.string(),
   })
   .refine((data: { password: string; confirmPassword: string }) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
+    message: "تأكيد كلمة المرور غير مطابق",
     path: ["confirmPassword"],
   });
 
 export const loginSchema = z.object({
-  email: z.string().toLowerCase().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  email: z.string().toLowerCase().email("البريد الإلكتروني غير صالح"),
+  password: z.string().min(8, "كلمة المرور يجب أن تتكون من 8 أحرف على الأقل"),
 });
 
 const validPlatforms = Object.values(SocialMediaPlatform);
 
 export const becomeArtistSchema = z.object({
-  artistName: z.string().min(3, "Artist name must be at least 3 characters"),
-  bio: z.string().min(20, "Bio must be at least 20 characters").max(1000, "Bio must not exceed 1000 characters"),
-  location: z.string().min(3, "Location must be at least 3 characters").max(255, "Location is too long"),
-  phone: z.string().regex(/^\d{10}$/, "Phone must be exactly 10 digits").max(50, "Phone number is too long"),
+  artistName: z.string().min(3, "الاسم الفني يجب أن يتكون من 3 أحرف على الأقل"),
+  bio: z.string().min(20, "النبذة الشخصية يجب أن تتكون من 20 حرفاً على الأقل").max(1000, "النبذة الشخصية يجب ألا تتجاوز 1000 حرف"),
+  location: z.string().min(3, "الموقع يجب أن يتكون من 3 أحرف على الأقل").max(255, "الموقع طويل جداً"),
+  phone: z.string().regex(/^\d{10}$/, "رقم الهاتف يجب أن يتكون من 10 أرقام بالضبط").max(50, "رقم الهاتف طويل جداً"),
   socialMedia: z
     .array(
       z.object({
         platform: z.nativeEnum(SocialMediaPlatform, {
-          message: `Platform must be one of: ${validPlatforms.join(", ")}`,
+          message: `المنصة يجب أن تكون واحدة من: ${validPlatforms.join(", ")}`,
         }),
-        url: z.string().url("Each social media URL must be valid"),
+        url: z.string().url("رابط حساب التواصل الاجتماعي غير صالح"),
       })
     )
     .optional(),
 });
 
-export const createArtworkSchema = z.object({
+export const createArtworkSchema = z.preprocess(normalizeArtworkBody, z.object({
   title: z.string().min(2, "العنوان يجب أن يكون على الأقل حرفين"),
   description: z.string().min(10, "الوصف يجب أن يكون على الأقل 10 أحرف"),
   category: z.enum(['لوحات فنية', 'تطريز فلسطيني', 'خزف وفخار', 'خط عربي', 'تصوير فوتوغرافي', 'نحت ومجسمات']),
-  price: z.number().positive("السعر يجب أن يكون موجبًا"),
-  quantity: z.number().int().min(0, "الكمية يجب أن تكون غير سالبة"),
-  images: z.array(z.object({
-    filename: z.string().min(1, "اسم الملف مطلوب"),
-    alt_text: z.string().optional(),
-    is_featured: z.boolean().optional()
-  })).min(1, "مطلوب صورة واحدة على الأقل").max(5, "الحد الأقصى 5 صور")
-});
+  price: z.coerce.number().positive("السعر يجب أن يكون موجبًا"),
+  quantity: z.coerce.number().int().min(0, "الكمية يجب أن تكون غير سالبة"),
+  images: z.array(normalizedImageSchema).min(1, "مطلوب صورة واحدة على الأقل").max(5, "الحد الأقصى 5 صور")
+}));
 
-export const updateArtworkSchema = z.object({
+export const updateArtworkSchema = z.preprocess(normalizeArtworkBody, z.object({
   title: z.string().min(2, "العنوان يجب أن يكون على الأقل حرفين").optional(),
   description: z.string().min(10, "الوصف يجب أن يكون على الأقل 10 أحرف").optional(),
   category: z.enum(['لوحات فنية', 'تطريز فلسطيني', 'خزف وفخار', 'خط عربي', 'تصوير فوتوغرافي', 'نحت ومجسمات']).optional(),
-  price: z.number().positive("السعر يجب أن يكون موجبًا").optional(),
-  quantity: z.number().int().min(0, "الكمية يجب أن تكون غير سالبة").optional(),
-  images: z.array(z.object({
-    filename: z.string().min(1, "اسم الملف مطلوب"),
-    alt_text: z.string().optional(),
-    is_featured: z.boolean().optional()
-  })).min(1, "مطلوب صورة واحدة على الأقل").max(5, "الحد الأقصى 5 صور").optional()
+  price: z.coerce.number().positive("السعر يجب أن يكون موجبًا").optional(),
+  quantity: z.coerce.number().int().min(0, "الكمية يجب أن تكون غير سالبة").optional(),
+  images: z.array(normalizedImageSchema).min(1, "مطلوب صورة واحدة على الأقل").max(5, "الحد الأقصى 5 صور").optional()
 }).refine(data => Object.keys(data).length > 0, {
   message: "مطلوب تحديث حقل واحد على الأقل"
-});
+}));
 
 export const validate =
   (schema: ZodSchema) =>

@@ -9,7 +9,7 @@ export const requireArtist = async (
 ): Promise<void> => {
   try {
     if (!req.userId) {
-      res.status(401).json({ status: 'error', message: 'User not authenticated' });
+      res.status(401).json({ status: 'error', message: 'يجب تسجيل الدخول أولاً' });
       return;
     }
 
@@ -21,12 +21,12 @@ export const requireArtist = async (
       .single();
 
     if (error || !user || user.role !== 'artist') {
-      res.status(403).json({ status: 'error', message: 'Only artists can perform this action' });
+      res.status(403).json({ status: 'error', message: 'هذا الإجراء متاح للفنانين فقط' });
       return;
     }
 
     next();
   } catch (error) {
-    res.status(500).json({ status: 'error', message: 'Server error' });
+    res.status(500).json({ status: 'error', message: 'حدث خطأ في الخادم' });
   }
 };

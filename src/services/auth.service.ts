@@ -15,7 +15,7 @@ export const signupUser = async (input: SignupInput) => {
     .single();
 
   if (existing) {
-    const error = new Error("Please check your email");
+    const error = new Error("هذا البريد الإلكتروني مستخدم بالفعل");
     (error as any).statusCode = 409;
     throw error;
   }
@@ -51,18 +51,18 @@ export const loginUser = async (input: LoginInput) => {
     .maybeSingle();
 
   if (error) {
-    throw new Error(error.message ?? "Failed to fetch user");
+    throw new Error(error.message ?? "تعذر جلب بيانات المستخدم");
   }
 
   if (!user) {
-    const authError = new Error("Invalid email or password");
+    const authError = new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
     (authError as any).statusCode = 401;
     throw authError;
   }
 
   const passwordMatches = await bcrypt.compare(input.password, user.password);
   if (!passwordMatches) {
-    const authError = new Error("Invalid email or password");
+    const authError = new Error("البريد الإلكتروني أو كلمة المرور غير صحيحة");
     (authError as any).statusCode = 401;
     throw authError;
   }

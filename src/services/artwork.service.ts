@@ -1,5 +1,11 @@
 import { getSupabase } from '../config/supabase';
 
+const createStatusError = (message: string, statusCode: number) => {
+  const error = new Error(message) as Error & { statusCode?: number };
+  error.statusCode = statusCode;
+  return error;
+};
+
 export interface CreateArtworkData {
   title: string;
   description: string;
@@ -8,6 +14,58 @@ export interface CreateArtworkData {
   quantity: number;
   images: { filename: string; alt_text?: string; is_featured?: boolean }[];
 }
+
+const dedupeImagesByFilename = (
+  images: { filename: string; alt_text?: string; is_featured?: boolean }[]
+) => {
+  const unique: { filename: string; alt_text?: string; is_featured?: boolean }[] = [];
+  const seen = new Set<string>();
+
+  for (const image of images) {
+    const filename = image.filename;
+    if (!filename || seen.has(filename)) continue;
+    seen.add(filename);
+    unique.push(image);
+  }
+
+  return unique;
+};
+
+const normalizeFeaturedImageSelection = (
+  images: { filename: string; alt_text?: string; is_featured?: boolean }[]
+) => {
+  if (images.length === 0) {
+    return images;
+  }
+
+  const featuredIndex = images.findIndex((image) => image.is_featured);
+  const safeFeaturedIndex = featuredIndex >= 0 ? featuredIndex : 0;
+
+  return images.map((image, index) => ({
+    ...image,
+    is_featured: index === safeFeaturedIndex,
+  }));
+};
+
+const sanitizeArtworkContactInfo = <T extends Record<string, any> | null>(artwork: T, showContactInfo: boolean): T => {
+  if (!artwork || showContactInfo) {
+    return artwork;
+  }
+
+  const artistRecord = Array.isArray(artwork.users) ? artwork.users[0] : artwork.users;
+  if (!artistRecord) {
+    return artwork;
+  }
+
+  return {
+    ...artwork,
+    users: {
+      ...artistRecord,
+      location: null,
+      phone: null,
+    },
+  } as T;
+};
 
 export const createArtwork = async (artistId: string, artworkData: CreateArtworkData) => {
   const supabase = getSupabase();
@@ -22,7 +80,9 @@ export const createArtwork = async (artistId: string, artworkData: CreateArtwork
         category: artworkData.category,
         artist_id: artistId,
         price: artworkData.price,
-        quantity: artworkData.quantity
+        quantity: artworkData.quantity,
+        is_active: true,
+        deleted_at: null,
       })
       .select()
       .single();
@@ -72,7 +132,7 @@ export const createArtwork = async (artistId: string, artworkData: CreateArtwork
   }
 };
 
-export const getArtworks = async (category?: string, status?: string, artistId?: string) => {
+export const getArtworks = async (category?: string, status?: string, artistId?: string, showContactInfo: boolean = false) => {
   const supabase = getSupabase();
   
   let query = supabase
@@ -87,7 +147,8 @@ export const getArtworks = async (category?: string, status?: string, artistId?:
         phone
       ),
       artwork_images(*)
-    `);
+    `)
+    .eq('is_active', true);
   
   if (category) {
     query = query.eq('category', category);
@@ -105,7 +166,7 @@ export const getArtworks = async (category?: string, status?: string, artistId?:
   
   if (error) throw error;
   
-  return data || [];
+  return (data || []).map((artwork) => sanitizeArtworkContactInfo(artwork, showContactInfo));
 };
 
 export const getArtworkById = async (id: string, showContactInfo: boolean = false) => {
@@ -125,11 +186,12 @@ export const getArtworkById = async (id: string, showContactInfo: boolean = fals
       artwork_images(*)
     `)
     .eq('id', id)
+    .eq('is_active', true)
     .single();
   
   if (error) throw error;
   
-  return data;
+  return sanitizeArtworkContactInfo(data, showContactInfo);
 };
 
 export const updateArtwork = async (id: string, artistId: string, updateData: Partial<CreateArtworkData>) => {
@@ -138,16 +200,31 @@ export const updateArtwork = async (id: string, artistId: string, updateData: Pa
   // First check if artwork exists and belongs to the artist
   const { data: existingArtwork, error: checkError } = await supabase
     .from('artworks')
-    .select('artist_id')
+    .select('artist_id, is_active')
     .eq('id', id)
     .single();
   
   if (checkError || !existingArtwork) {
-    throw new Error('Artwork not found');
+    throw createStatusError('العمل الفني غير موجود', 404);
   }
   
   if (existingArtwork.artist_id !== artistId) {
-    throw new Error('You can only update your own artworks');
+    throw createStatusError('يمكنك تحديث أعمالك الفنية فقط', 403);
+  }
+
+  if (!existingArtwork.is_active) {
+    throw createStatusError('العمل الفني غير موجود', 404);
+  }
+
+  let oldImageFilenames: string[] = [];
+  if (updateData.images !== undefined) {
+    const { data: oldImages, error: oldImagesError } = await supabase
+      .from('artwork_images')
+      .select('filename')
+      .eq('artwork_id', id);
+
+    if (oldImagesError) throw oldImagesError;
+    oldImageFilenames = (oldImages || []).map((image) => image.filename);
   }
   
   // Update artwork basic info
@@ -169,27 +246,71 @@ export const updateArtwork = async (id: string, artistId: string, updateData: Pa
   
   // Update images if provided
   if (updateData.images !== undefined) {
-    // Delete existing images
-    await supabase
+    updateData.images = dedupeImagesByFilename(updateData.images);
+
+    if (updateData.images.length === 0) {
+      throw createStatusError('يجب أن يحتوي العمل الفني على صورة واحدة على الأقل', 400);
+    }
+
+    updateData.images = normalizeFeaturedImageSelection(updateData.images);
+
+    const { data: currentImages, error: currentImagesError } = await supabase
       .from('artwork_images')
-      .delete()
+      .select('filename')
       .eq('artwork_id', id);
-    
-    // Insert new images
-    if (updateData.images.length > 0) {
-      const imagesToInsert = updateData.images.map((image, index) => ({
-        artwork_id: id,
-        filename: image.filename,
+
+    if (currentImagesError) throw currentImagesError;
+
+    const currentFilenameSet = new Set((currentImages || []).map((image) => image.filename));
+    const nextFilenameSet = new Set(updateData.images.map((image) => image.filename));
+
+    const filenamesToDelete = (currentImages || [])
+      .map((image) => image.filename)
+      .filter((filename) => !nextFilenameSet.has(filename));
+
+    const { error: clearFeaturedError } = await supabase
+      .from('artwork_images')
+      .update({ is_featured: false })
+      .eq('artwork_id', id);
+
+    if (clearFeaturedError) throw clearFeaturedError;
+
+    for (const [index, image] of updateData.images.entries()) {
+      const imagePayload = {
         alt_text: image.alt_text || null,
         is_featured: image.is_featured || false,
-        sort_order: index
-      }));
-      
-      const { error: imagesError } = await supabase
+        sort_order: index,
+      };
+
+      if (currentFilenameSet.has(image.filename)) {
+        const { error: updateImageError } = await supabase
+          .from('artwork_images')
+          .update(imagePayload)
+          .eq('artwork_id', id)
+          .eq('filename', image.filename);
+
+        if (updateImageError) throw updateImageError;
+      } else {
+        const { error: insertImageError } = await supabase
+          .from('artwork_images')
+          .insert({
+            artwork_id: id,
+            filename: image.filename,
+            ...imagePayload,
+          });
+
+        if (insertImageError) throw insertImageError;
+      }
+    }
+
+    if (filenamesToDelete.length > 0) {
+      const { error: deleteImagesError } = await supabase
         .from('artwork_images')
-        .insert(imagesToInsert);
-      
-      if (imagesError) throw imagesError;
+        .delete()
+        .eq('artwork_id', id)
+        .in('filename', filenamesToDelete);
+
+      if (deleteImagesError) throw deleteImagesError;
     }
   }
   
@@ -212,7 +333,10 @@ export const updateArtwork = async (id: string, artistId: string, updateData: Pa
   
   if (completeError) throw completeError;
   
-  return completeArtwork;
+  return {
+    artwork: completeArtwork,
+    oldImageFilenames,
+  };
 };
 
 export const deleteArtwork = async (id: string, artistId: string) => {
@@ -221,27 +345,44 @@ export const deleteArtwork = async (id: string, artistId: string) => {
   // First check if artwork exists and belongs to the artist
   const { data: existingArtwork, error: checkError } = await supabase
     .from('artworks')
-    .select('artist_id')
+    .select('artist_id, is_active')
     .eq('id', id)
     .single();
   
   if (checkError || !existingArtwork) {
-    throw new Error('Artwork not found');
+    throw createStatusError('العمل الفني غير موجود', 404);
   }
   
   if (existingArtwork.artist_id !== artistId) {
-    throw new Error('You can only delete your own artworks');
+    throw createStatusError('يمكنك حذف أعمالك الفنية فقط', 403);
   }
+
+  if (!existingArtwork.is_active) {
+    throw createStatusError('تم حذف هذا العمل الفني مسبقاً', 409);
+  }
+
+  const { data: images, error: imagesError } = await supabase
+    .from('artwork_images')
+    .select('filename')
+    .eq('artwork_id', id);
+
+  if (imagesError) throw imagesError;
   
-  // Delete artwork (this will cascade delete images due to foreign key constraint)
+  // Soft delete artwork from listings while keeping historical data.
   const { error: deleteError } = await supabase
     .from('artworks')
-    .delete()
+    .update({
+      is_active: false,
+      deleted_at: new Date().toISOString(),
+    })
     .eq('id', id);
   
   if (deleteError) throw deleteError;
   
-  return { message: 'Artwork deleted successfully' };
+  return {
+    message: 'تم حذف العمل الفني بنجاح',
+    deletedImageFilenames: (images || []).map((image) => image.filename),
+  };
 };
 
 export const getMyArtworks = async (artistId: string, filters?: {
@@ -257,6 +398,7 @@ export const getMyArtworks = async (artistId: string, filters?: {
       artwork_images(*)
     `)
     .eq('artist_id', artistId)
+    .eq('is_active', true)
     .order('created_at', { ascending: false });
   
   // Apply filters if provided

@@ -142,7 +142,7 @@ describe("PATCH /api/users/profile", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("success");
-    expect(res.body.message).toBe("Profile updated successfully");
+    expect(res.body.message).toBe("تم تحديث الملف الشخصي بنجاح");
     expect(res.body.data.user.socialMedia).toEqual(validBecomeArtistBody.socialMedia);
     expect(mockUpsertArtistProfile).toHaveBeenCalledWith("user-123", validBecomeArtistBody);
   });
@@ -214,7 +214,7 @@ describe("DELETE /api/users/account", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("success");
-    expect(res.body.message).toBe("Account deleted successfully");
+    expect(res.body.message).toBe("تم حذف الحساب بنجاح");
     expect(mockDeleteUserAccount).toHaveBeenCalledWith("user-123");
   });
 
