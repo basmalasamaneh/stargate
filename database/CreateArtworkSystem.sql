@@ -4,7 +4,6 @@
 -- ============================================================
 
 -- ── Enums ────────────────────────────────────────────────────
-CREATE TYPE artwork_status AS ENUM ('available', 'sold', 'reserved');
 CREATE TYPE artwork_category AS ENUM (
   'لوحات فنية',
   'تطريز فلسطيني',
@@ -23,7 +22,6 @@ CREATE TABLE IF NOT EXISTS artworks (
   artist_id   UUID              NOT NULL REFERENCES users(id),
   price       DECIMAL(10,2)     NOT NULL CHECK (price > 0),
   quantity    INTEGER           NOT NULL DEFAULT 1 CHECK (quantity >= 0),
-  status      artwork_status    NOT NULL DEFAULT 'available',
   is_active   BOOLEAN           NOT NULL DEFAULT TRUE,
   deleted_at  TIMESTAMPTZ,
   created_at  TIMESTAMPTZ       NOT NULL DEFAULT NOW(),
@@ -56,6 +54,11 @@ WHERE is_active IS NULL;
 ALTER TABLE public.artworks
   ALTER COLUMN is_active SET DEFAULT TRUE,
   ALTER COLUMN is_active SET NOT NULL;
+
+ALTER TABLE public.artworks
+  DROP COLUMN IF EXISTS status;
+
+DROP TYPE IF EXISTS public.artwork_status;
 
 DROP INDEX IF EXISTS public.idx_artworks_is_deleted;
 ALTER TABLE public.artworks
@@ -92,7 +95,6 @@ CREATE TABLE IF NOT EXISTS artwork_images (
 -- ── Indexes ──────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_artworks_artist_id ON artworks(artist_id);
 CREATE INDEX IF NOT EXISTS idx_artworks_category ON artworks(category);
-CREATE INDEX IF NOT EXISTS idx_artworks_status ON artworks(status);
 CREATE INDEX IF NOT EXISTS idx_artworks_is_active ON artworks(is_active);
 CREATE INDEX IF NOT EXISTS idx_artwork_images_artwork_id ON artwork_images(artwork_id);
 

@@ -132,7 +132,7 @@ export const createArtwork = async (artistId: string, artworkData: CreateArtwork
   }
 };
 
-export const getArtworks = async (category?: string, status?: string, artistId?: string, showContactInfo: boolean = false) => {
+export const getArtworks = async (category?: string, artistId?: string, showContactInfo: boolean = false) => {
   const supabase = getSupabase();
   
   let query = supabase
@@ -152,10 +152,6 @@ export const getArtworks = async (category?: string, status?: string, artistId?:
   
   if (category) {
     query = query.eq('category', category);
-  }
-  
-  if (status) {
-    query = query.eq('status', status);
   }
   
   if (artistId) {
@@ -387,7 +383,6 @@ export const deleteArtwork = async (id: string, artistId: string) => {
 
 export const getMyArtworks = async (artistId: string, filters?: {
   category?: string;
-  status?: string;
 }) => {
   const supabase = getSupabase();
   
@@ -404,10 +399,6 @@ export const getMyArtworks = async (artistId: string, filters?: {
   // Apply filters if provided
   if (filters?.category) {
     query = query.eq('category', filters.category);
-  }
-  
-  if (filters?.status) {
-    query = query.eq('status', filters.status);
   }
   
   const { data, error } = await query;

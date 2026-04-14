@@ -134,12 +134,11 @@ export const addArtwork = async (req: AuthRequest, res: Response): Promise<void>
 
 export const listArtworks = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { category, status, artist_id } = req.query;
+    const { category, artist_id } = req.query;
     const showContactInfo = req.headers['authorization'] ? true : false;
     
     const artworks = await getArtworks(
       category as string,
-      status as string,
       artist_id as string,
       showContactInfo
     );
@@ -335,11 +334,10 @@ export const getMyArtworks = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    const { category, status } = req.query;
+    const { category } = req.query;
     
     const filters: any = {};
     if (category) filters.category = category;
-    if (status) filters.status = status;
 
     const artworks = await getMyArtworksService(req.userId, filters);
     

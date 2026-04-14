@@ -128,8 +128,7 @@ describe("POST /api/artworks", () => {
     const payload = mockCreateArtwork.mock.calls[0][1];
     expect(mockCreateArtwork.mock.calls[0][0]).toBe("artist-1");
     expect(payload.images).toHaveLength(1);
-    expect(payload.images[0]?.filename).toMatch(/^artwork-/);
-    expect(payload.images[0]?.filename).toMatch(/sunset-study/);
+    expect(payload.images[0]?.filename).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.[a-z0-9]+$/i);
     expect(payload.images[0]?.is_featured).toBe(true);
   });
 });
@@ -140,11 +139,11 @@ describe("GET /api/artworks", () => {
 
     const res = await request(app)
       .get("/api/artworks")
-      .query({ category: "لوحات فنية", status: "available", artist_id: "artist-1" });
+      .query({ category: "لوحات فنية", artist_id: "artist-1" });
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("success");
-    expect(mockGetArtworks).toHaveBeenCalledWith("لوحات فنية", "available", "artist-1", false);
+    expect(mockGetArtworks).toHaveBeenCalledWith("لوحات فنية", "artist-1", false);
   });
 
   it("should pass showContactInfo=true when authorization header exists", async () => {
@@ -155,7 +154,7 @@ describe("GET /api/artworks", () => {
       .set("Authorization", "Bearer token-any-value");
 
     expect(res.status).toBe(200);
-    expect(mockGetArtworks).toHaveBeenCalledWith(undefined, undefined, undefined, true);
+    expect(mockGetArtworks).toHaveBeenCalledWith(undefined, undefined, true);
   });
 });
 
@@ -248,7 +247,7 @@ describe("PATCH /api/artworks/:id", () => {
     const mappedImages = updatePayload.images || [];
     expect(mappedImages).toHaveLength(2);
     expect(mappedImages[0]?.filename).toBe("old-1.jpg");
-    expect(mappedImages[1]?.filename).toMatch(/^artwork-/);
+    expect(mappedImages[1]?.filename).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.[a-z0-9]+$/i);
   });
 
   it("should propagate service status errors", async () => {
@@ -352,14 +351,13 @@ describe("GET /api/artworks/my-artworks", () => {
     const res = await request(app)
       .get("/api/artworks/my-artworks")
       .set("Authorization", `Bearer ${token}`)
-      .query({ category: "لوحات فنية", status: "available" });
+      .query({ category: "لوحات فنية" });
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("success");
     expect(res.body.message).toBe("تم جلب أعمالك الفنية بنجاح");
     expect(mockGetMyArtworks).toHaveBeenCalledWith("artist-1", {
       category: "لوحات فنية",
-      status: "available",
     });
   });
 });
