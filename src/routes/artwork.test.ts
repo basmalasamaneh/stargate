@@ -143,7 +143,7 @@ describe("GET /api/artworks", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("success");
-    expect(mockGetArtworks).toHaveBeenCalledWith("لوحات فنية", "artist-1", false);
+    expect(mockGetArtworks).toHaveBeenCalledWith({ page: 1, limit: 12, category: "لوحات فنية", artistId: "artist-1" }, false);
   });
 
   it("should pass showContactInfo=true when authorization header exists", async () => {
@@ -154,7 +154,7 @@ describe("GET /api/artworks", () => {
       .set("Authorization", "Bearer token-any-value");
 
     expect(res.status).toBe(200);
-    expect(mockGetArtworks).toHaveBeenCalledWith(undefined, undefined, true);
+    expect(mockGetArtworks).toHaveBeenCalledWith({ page: 1, limit: 12 }, true);
   });
 });
 
@@ -357,7 +357,7 @@ describe("GET /api/artworks/my-artworks", () => {
     expect(res.body.status).toBe("success");
     expect(res.body.message).toBe("تم جلب أعمالك الفنية بنجاح");
     expect(mockGetMyArtworks).toHaveBeenCalledWith("artist-1", {
-      category: "لوحات فنية",
+      page: 1, limit: 9, category: "لوحات فنية",
     });
   });
 });

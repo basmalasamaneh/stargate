@@ -15,6 +15,22 @@ export interface CreateArtworkData {
   images: { filename: string; alt_text?: string; is_featured?: boolean }[];
 }
 
+export interface ArtworkQueryFilters {
+  category?: string;
+  artistId?: string;
+  search?: string;
+  searchBy?: 'artwork' | 'global';
+  page?: number;
+  limit?: number;
+}
+
+export interface ArtworkListResult {
+  artworks: Record<string, unknown>[];
+  totalCount: number;
+  page: number;
+  limit: number;
+}
+
 const dedupeImagesByFilename = (
   images: { filename: string; alt_text?: string; is_featured?: boolean }[]
 ) => {
@@ -132,8 +148,14 @@ export const createArtwork = async (artistId: string, artworkData: CreateArtwork
   }
 };
 
-export const getArtworks = async (category?: string, artistId?: string, showContactInfo: boolean = false) => {
+export const getArtworks = async (
+  filters: ArtworkQueryFilters,
+  showContactInfo: boolean = false
+): Promise<ArtworkListResult> => {
   const supabase = getSupabase();
+  const page = Math.max(1, Math.floor(filters.page ?? 1));
+  const limit = Math.max(1, Math.min(100, Math.floor(filters.limit ?? 12)));
+  const offset = (page - 1) * limit;
   
   let query = supabase
     .from('artworks')
@@ -147,22 +169,38 @@ export const getArtworks = async (category?: string, artistId?: string, showCont
         phone
       ),
       artwork_images(*)
-    `)
+    `, { count: 'exact' })
     .eq('is_active', true);
   
-  if (category) {
-    query = query.eq('category', category);
+  if (filters.category) {
+    query = query.eq('category', filters.category);
   }
   
-  if (artistId) {
-    query = query.eq('artist_id', artistId);
+  if (filters.artistId) {
+    query = query.eq('artist_id', filters.artistId);
+  }
+
+  if (filters.search) {
+    const sanitizedSearch = filters.search.trim();
+    if (sanitizedSearch) {
+      // Use ilike and or combination for search
+      const searchPattern = `%${sanitizedSearch}%`;
+      query = query.or(`title.ilike.${searchPattern},description.ilike.${searchPattern}`);
+    }
   }
   
-  const { data, error } = await query.order('created_at', { ascending: false });
+  const { data, error, count } = await query
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
   
   if (error) throw error;
   
-  return (data || []).map((artwork) => sanitizeArtworkContactInfo(artwork, showContactInfo));
+  return {
+    artworks: (data || []).map((artwork) => sanitizeArtworkContactInfo(artwork, showContactInfo)),
+    totalCount: count ?? 0,
+    page,
+    limit,
+  };
 };
 
 export const getArtworkById = async (id: string, showContactInfo: boolean = false) => {
@@ -381,29 +419,44 @@ export const deleteArtwork = async (id: string, artistId: string) => {
   };
 };
 
-export const getMyArtworks = async (artistId: string, filters?: {
-  category?: string;
-}) => {
+export const getMyArtworks = async (
+  artistId: string,
+  filters?: ArtworkQueryFilters
+): Promise<ArtworkListResult> => {
   const supabase = getSupabase();
+  const page = Math.max(1, Math.floor(filters?.page ?? 1));
+  const limit = Math.max(1, Math.min(100, Math.floor(filters?.limit ?? 9)));
+  const offset = (page - 1) * limit;
   
   let query = supabase
     .from('artworks')
     .select(`
       *,
       artwork_images(*)
-    `)
+    `, { count: 'exact' })
     .eq('artist_id', artistId)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
+    .eq('is_active', true);
   
   // Apply filters if provided
   if (filters?.category) {
     query = query.eq('category', filters.category);
   }
+
+  if (filters?.search) {
+    const searchTerm = `%${filters.search.trim().replace(/[%_]/g, '')}%`;
+    query = query.or(`title.ilike.${searchTerm},description.ilike.${searchTerm}`);
+  }
   
-  const { data, error } = await query;
+  const { data, error, count } = await query
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
   
   if (error) throw error;
   
-  return data;
+  return {
+    artworks: data || [],
+    totalCount: count ?? 0,
+    page,
+    limit,
+  };
 };

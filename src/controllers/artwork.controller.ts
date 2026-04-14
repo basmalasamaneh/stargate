@@ -53,6 +53,17 @@ const parseMainImageIndex = (value: unknown): number => {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
 };
 
+const parsePositiveInt = (value: unknown, fallback: number, max: number): number => {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, max);
+};
+
+const toOptionalString = (value: unknown): string | undefined => {
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  return undefined;
+};
+
 const sendValidationError = (res: Response, issues: z.ZodIssue[]) => {
   res.status(400).json({
     status: 'error',
@@ -134,19 +145,43 @@ export const addArtwork = async (req: AuthRequest, res: Response): Promise<void>
 
 export const listArtworks = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { category, artist_id } = req.query;
+    const { category, artist_id, search, searchBy, page, limit } = req.query;
     const showContactInfo = req.headers['authorization'] ? true : false;
+    const parsedPage = parsePositiveInt(page, 1, 100000);
+    const parsedLimit = parsePositiveInt(limit, 12, 100);
+    const searchValue = toOptionalString(search);
+    const categoryValue = toOptionalString(category);
+    const artistIdValue = toOptionalString(artist_id);
+    const searchByValue = toOptionalString(searchBy) === 'global' ? 'global' : 'artwork';
+
+    const filters: {
+      page: number;
+      limit: number;
+      category?: string;
+      artistId?: string;
+      search?: string;
+      searchBy?: 'artwork' | 'global';
+    } = {
+      page: parsedPage,
+      limit: parsedLimit,
+    };
+
+    if (categoryValue) filters.category = categoryValue;
+    if (artistIdValue) filters.artistId = artistIdValue;
+    if (searchValue) filters.search = searchValue;
+    if (searchValue) filters.searchBy = searchByValue;
     
-    const artworks = await getArtworks(
-      category as string,
-      artist_id as string,
-      showContactInfo
-    );
+    const result = await getArtworks(filters, showContactInfo);
     
     res.status(200).json({
       status: 'success',
       message: 'تم جلب الأعمال الفنية بنجاح',
-      data: { artworks }
+      data: {
+        artworks: result.artworks,
+        totalCount: result.totalCount,
+        page: result.page,
+        limit: result.limit,
+      }
     });
     
   } catch (error: any) {
@@ -334,17 +369,35 @@ export const getMyArtworks = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    const { category } = req.query;
-    
-    const filters: any = {};
-    if (category) filters.category = category;
+    const { category, search, page, limit } = req.query;
+    const parsedPage = parsePositiveInt(page, 1, 100000);
+    const parsedLimit = parsePositiveInt(limit, 9, 100);
+    const searchValue = toOptionalString(search);
+    const categoryValue = toOptionalString(category);
 
-    const artworks = await getMyArtworksService(req.userId, filters);
+    const filters: {
+      category?: string;
+      search?: string;
+      page?: number;
+      limit?: number;
+    } = {
+      page: parsedPage,
+      limit: parsedLimit,
+    };
+    if (searchValue) filters.search = searchValue;
+    if (categoryValue) filters.category = categoryValue;
+
+    const result = await getMyArtworksService(req.userId, filters);
     
     res.status(200).json({
       status: 'success',
       message: 'تم جلب أعمالك الفنية بنجاح',
-      data: { artworks }
+      data: {
+        artworks: result.artworks,
+        totalCount: result.totalCount,
+        page: result.page,
+        limit: result.limit,
+      }
     });
     
   } catch (error: any) {
