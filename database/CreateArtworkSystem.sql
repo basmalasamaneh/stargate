@@ -122,8 +122,8 @@ CREATE OR REPLACE FUNCTION validate_artwork_image_count()
 RETURNS TRIGGER AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    IF (SELECT COUNT(*) FROM artwork_images WHERE artwork_id = NEW.artwork_id) >= 5 THEN
-      RAISE EXCEPTION 'لا يمكن أن يحتوي العمل الفني على أكثر من 5 صور';
+    IF (SELECT COUNT(*) FROM artwork_images WHERE artwork_id = NEW.artwork_id) >= 3 THEN
+      RAISE EXCEPTION 'لا يمكن أن يحتوي العمل الفني على أكثر من 3 صور';
     END IF;
   END IF;
 

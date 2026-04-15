@@ -1,26 +1,14 @@
 import { Request, Response } from 'express';
 import { createArtwork, getArtworks, getArtworkById, updateArtwork as updateArtworkService, deleteArtwork as deleteArtworkService, getMyArtworks as getMyArtworksService } from '../services/artwork.service';
 import type { CreateArtworkData } from '../services/artwork.service';
+import { extractArtworkStoragePath, removeArtworkObjects, uploadArtworkFiles } from '../services/artwork-storage.service';
 import { ArtworkCategory } from '../types/artwork.types';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { createArtworkSchema, updateArtworkSchema } from '../middlewares/validate.middleware';
 import { z } from 'zod';
-import fs from 'fs';
-import path from 'path';
-
-const imageDirectoryPath = path.resolve(__dirname, '../../images');
-
-const removeFilesSafely = (filenames: string[]) => {
-  for (const filename of filenames) {
-    const targetPath = path.resolve(imageDirectoryPath, filename);
-    if (!targetPath.startsWith(imageDirectoryPath)) continue;
-    if (fs.existsSync(targetPath)) fs.unlinkSync(targetPath);
-  }
-};
 
 const normalizeStoredFilename = (value: string): string => {
-  const withoutPrefix = value.replace(/^\/images\//, '');
-  return path.basename(withoutPrefix);
+  return extractArtworkStoragePath(value);
 };
 
 const toStringArray = (value: unknown): string[] => {
@@ -54,6 +42,8 @@ const parseMainImageIndex = (value: unknown): number => {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
 };
 
+const buildUploadPlaceholder = (index: number): string => `__new_upload__${index}`;
+
 const parsePositiveInt = (value: unknown, fallback: number, max: number): number => {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) return fallback;
@@ -82,18 +72,17 @@ const extractUploadedFiles = (req: AuthRequest): Express.Multer.File[] => {
 
 export const addArtwork = async (req: AuthRequest, res: Response): Promise<void> => {
   const uploadedFiles = extractUploadedFiles(req);
-  const uploadedFilenames = uploadedFiles.map((file) => file.filename);
+  const uploadedStoragePaths: string[] = [];
 
   try {
     if (!req.userId) {
-      removeFilesSafely(uploadedFilenames);
       res.status(401).json({ status: 'error', message: 'يجب تسجيل الدخول أولاً' });
       return;
     }
 
     const featuredImageIndex = parseMainImageIndex(req.body.mainImageIndex);
     const images = uploadedFiles.map((file, index) => ({
-      filename: file.filename,
+      filename: buildUploadPlaceholder(index),
       alt_text: req.body.title,
       is_featured: index === featuredImageIndex,
     }));
@@ -108,10 +97,11 @@ export const addArtwork = async (req: AuthRequest, res: Response): Promise<void>
     });
 
     if (!validationResult.success) {
-      removeFilesSafely(uploadedFilenames);
       sendValidationError(res, validationResult.error.issues);
       return;
     }
+
+    uploadedStoragePaths.push(...await uploadArtworkFiles(uploadedFiles, req.userId));
 
     const artworkData: CreateArtworkData = {
       title: validationResult.data.title,
@@ -119,8 +109,8 @@ export const addArtwork = async (req: AuthRequest, res: Response): Promise<void>
       category: validationResult.data.category as ArtworkCategory,
       price: validationResult.data.price,
       quantity: validationResult.data.quantity,
-      images: validationResult.data.images.map((image) => ({
-        filename: image.filename as string,
+      images: validationResult.data.images.map((image, index) => ({
+        filename: uploadedStoragePaths[index] || image.filename as string,
         ...(image.alt_text ? { alt_text: image.alt_text } : {}),
         is_featured: image.is_featured,
       })),
@@ -133,9 +123,13 @@ export const addArtwork = async (req: AuthRequest, res: Response): Promise<void>
       message: 'تم إنشاء العمل الفني بنجاح',
       data: { artwork }
     });
+
+    uploadedStoragePaths.length = 0;
     
   } catch (error: any) {
-    removeFilesSafely(uploadedFilenames);
+    if (uploadedStoragePaths.length > 0) {
+      await removeArtworkObjects(uploadedStoragePaths).catch(() => undefined);
+    }
     const statusCode = error.statusCode ?? 500;
     res.status(statusCode).json({
       status: 'error',
@@ -226,19 +220,19 @@ export const getArtwork = async (req: Request, res: Response): Promise<void> => 
 
 export const updateArtwork = async (req: AuthRequest, res: Response): Promise<void> => {
   const uploadedFiles = extractUploadedFiles(req);
-  const uploadedFilenames = uploadedFiles.map((file) => file.filename);
+  const uploadedStoragePaths: string[] = [];
 
   try {
     if (!req.userId) {
-      removeFilesSafely(uploadedFilenames);
       res.status(401).json({ status: 'error', message: 'يجب تسجيل الدخول أولاً' });
       return;
     }
 
     const featuredImageIndex = parseMainImageIndex(req.body.mainImageIndex);
     const existingImageNames = toStringArray(req.body.existingImages).map(normalizeStoredFilename);
-    const newImageNames = uploadedFiles.map((file) => file.filename);
+    const newImageNames = uploadedFiles.map((_file, index) => buildUploadPlaceholder(index));
     const imageOrderTokens = toStringArray(req.body.imageOrder);
+    const imageUpdateRequested = req.body.existingImages !== undefined || req.body.imageOrder !== undefined || uploadedFiles.length > 0;
 
     let mergedImageNames = [...existingImageNames, ...newImageNames];
     if (imageOrderTokens.length > 0) {
@@ -277,7 +271,7 @@ export const updateArtwork = async (req: AuthRequest, res: Response): Promise<vo
       quantity: req.body.quantity,
     };
 
-    if (mergedImageNames.length > 0) {
+    if (imageUpdateRequested) {
       payload.images = mergedImageNames.map((filename, index) => ({
         filename,
         alt_text: req.body.title,
@@ -287,10 +281,14 @@ export const updateArtwork = async (req: AuthRequest, res: Response): Promise<vo
 
     const validationResult = updateArtworkSchema.safeParse(payload);
     if (!validationResult.success) {
-      removeFilesSafely(uploadedFilenames);
       sendValidationError(res, validationResult.error.issues);
       return;
     }
+
+    uploadedStoragePaths.push(...await uploadArtworkFiles(uploadedFiles, req.userId));
+    const uploadedPathByPlaceholder = new Map(
+      newImageNames.map((placeholder, index) => [placeholder, uploadedStoragePaths[index] || placeholder])
+    );
 
     const cleanedUpdateData: Partial<CreateArtworkData> = {};
 
@@ -302,7 +300,7 @@ export const updateArtwork = async (req: AuthRequest, res: Response): Promise<vo
 
     if (Array.isArray(validationResult.data.images)) {
       cleanedUpdateData.images = validationResult.data.images.map((image) => ({
-        filename: image.filename as string,
+        filename: uploadedPathByPlaceholder.get(image.filename as string) || normalizeStoredFilename(image.filename as string),
         ...(image.alt_text ? { alt_text: image.alt_text } : {}),
         is_featured: image.is_featured,
       }));
@@ -320,7 +318,11 @@ export const updateArtwork = async (req: AuthRequest, res: Response): Promise<vo
     const filesToRemove = (updateResult.oldImageFilenames || []).filter(
       (filename) => !keptImageSet.has(filename)
     );
-    removeFilesSafely(filesToRemove);
+    if (filesToRemove.length > 0) {
+      await removeArtworkObjects(filesToRemove).catch(() => undefined);
+    }
+
+    uploadedStoragePaths.length = 0;
     
     res.status(200).json({
       status: 'success',
@@ -329,7 +331,9 @@ export const updateArtwork = async (req: AuthRequest, res: Response): Promise<vo
     });
     
   } catch (error: any) {
-    removeFilesSafely(uploadedFilenames);
+    if (uploadedStoragePaths.length > 0) {
+      await removeArtworkObjects(uploadedStoragePaths).catch(() => undefined);
+    }
     const statusCode = error.statusCode ?? 500;
     res.status(statusCode).json({
       status: 'error',
@@ -347,6 +351,9 @@ export const deleteArtwork = async (req: AuthRequest, res: Response): Promise<vo
 
     const { id } = req.params;
     const deleteResult = await deleteArtworkService(id as string, req.userId);
+    if (deleteResult.deletedImageFilenames?.length > 0) {
+      await removeArtworkObjects(deleteResult.deletedImageFilenames).catch(() => undefined);
+    }
     
     res.status(200).json({
       status: 'success',
