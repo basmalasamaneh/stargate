@@ -16,7 +16,7 @@ export const requireAuth = (
     : undefined;
 
   if (!token) {
-    res.status(401).json({ status: "error", message: "No token provided" });
+    res.status(401).json({ status: "error", message: "لم يتم إرسال رمز التحقق" });
     return;
   }
 
@@ -25,7 +25,7 @@ export const requireAuth = (
     process.env["NODE_ENV"] === "test" || process.env["NODE_ENV"] === "development";
 
   if (!jwtSecret && !canUseDefaultSecret) {
-    res.status(500).json({ status: "error", message: "Server configuration error" });
+    res.status(500).json({ status: "error", message: "خطأ في إعدادات الخادم" });
     return;
   }
 
@@ -34,6 +34,6 @@ export const requireAuth = (
     req.userId = payload.userId;
     next();
   } catch {
-    res.status(401).json({ status: "error", message: "Invalid or expired token" });
+    res.status(401).json({ status: "error", message: "رمز التحقق غير صالح أو منتهي الصلاحية" });
   }
 };

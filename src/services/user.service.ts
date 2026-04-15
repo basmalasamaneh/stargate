@@ -22,7 +22,7 @@ export const getUserProfile = async (userId: string) => {
     .single();
 
   if (error) {
-    throw new Error(error.message ?? "Failed to fetch user profile");
+    throw new Error(error.message ?? "تعذر جلب الملف الشخصي");
   }
 
   return user;
@@ -41,11 +41,11 @@ export const upsertArtistProfile = async (userId: string, input: BecomeArtistInp
     .limit(1);
 
   if (existingArtistError) {
-    throw new Error(existingArtistError.message ?? "Failed to check artist name availability");
+    throw new Error(existingArtistError.message ?? "تعذر التحقق من توفر الاسم الفني");
   }
 
   if ((existingArtists?.length ?? 0) > 0) {
-    const conflictError = new Error("Artist name is already in use.");
+    const conflictError = new Error("الاسم الفني مستخدم بالفعل");
     (conflictError as any).statusCode = 409;
     throw conflictError;
   }
@@ -66,11 +66,11 @@ export const upsertArtistProfile = async (userId: string, input: BecomeArtistInp
 
   if (error) {
     if (isUniqueArtistNameViolation(error)) {
-      const conflictError = new Error("Artist name is already in use.");
+      const conflictError = new Error("الاسم الفني مستخدم بالفعل");
       (conflictError as any).statusCode = 409;
       throw conflictError;
     }
-    throw new Error(error.message ?? "Failed to update profile");
+    throw new Error(error.message ?? "تعذر تحديث الملف الشخصي");
   }
 
   return user;
@@ -85,7 +85,7 @@ export const deleteUserAccount = async (userId: string) => {
     .eq("id", userId);
 
   if (error) {
-    throw new Error(error.message ?? "Failed to delete user");
+    throw new Error(error.message ?? "تعذر حذف الحساب");
   }
 };
 

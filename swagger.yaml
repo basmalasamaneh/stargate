@@ -1,43 +1,35 @@
 openapi: 3.0.0
 info:
-  title: backend
-  version: 1.0.0
-  description: Athar Project Backend
+  title: Athar Project Backend API
+  version: 1.1.0
+  description: API documentation for authentication, users, and artworks modules.
+
 servers:
   - url: http://localhost:3001/api
 
 tags:
+  - name: Health
   - name: Auth
-    description: Authentication endpoints
   - name: Users
-    description: User account endpoints
+  - name: Artworks
 
 paths:
   /health:
     get:
-      summary: Health Check
-      description: Returns the health status of the server
+      tags: [Health]
+      summary: Health check
       responses:
         "200":
-          description: Server is healthy
+          description: Server healthy
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: Ok Healthy
-                  timestamp:
-                    type: string
-                    example: "2024-01-01T00:00:00.000Z"
+                $ref: '#/components/schemas/HealthResponse'
 
   /auth/signup:
     post:
-      tags:
-        - Auth
-      summary: User signup
-      description: Create a new user account via signup
+      tags: [Auth]
+      summary: Sign up
       requestBody:
         required: true
         content:
@@ -46,90 +38,20 @@ paths:
               $ref: '#/components/schemas/SignupInput'
       responses:
         "201":
-          description: User created successfully
+          description: User created
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: User created successfully
-                  data:
-                    type: object
-                    properties:
-                      token:
-                        type: string
-                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-                      user:
-                        type: object
-                        properties:
-                          id:
-                            type: string
-                            example: "12345"
-                          email:
-                            type: string
-                            example: maryam@example.com
-                          role:
-                            type: string
-                            example: user
+                $ref: '#/components/schemas/AuthSuccessResponse'
         "400":
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  errors:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        field:
-                          type: string
-                          example: email
-                        message:
-                          type: string
-                          example: Invalid email address
+          $ref: '#/components/responses/ValidationError'
         "409":
-          description: Duplicate email
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Please check your email
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Internal server error
+          $ref: '#/components/responses/ConflictError'
 
   /auth/login:
     post:
-      tags:
-        - Auth
-      summary: User login
-      description: Authenticate an existing user and return a JWT token
+      tags: [Auth]
+      summary: Login
       requestBody:
         required: true
         content:
@@ -138,95 +60,25 @@ paths:
               $ref: '#/components/schemas/LoginInput'
       responses:
         "200":
-          description: Login successful
+          description: Login success
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: success
-                  message:
-                    type: string
-                    example: Login successful
-                  data:
-                    type: object
-                    properties:
-                      token:
-                        type: string
-                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-                      user:
-                        type: object
-                        properties:
-                          id:
-                            type: string
-                            example: "12345"
-                          email:
-                            type: string
-                            example: maryam@example.com
-                          role:
-                            type: string
-                            example: user
+                $ref: '#/components/schemas/AuthSuccessResponse'
         "400":
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  errors:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        field:
-                          type: string
-                          example: email
-                        message:
-                          type: string
-                          example: Invalid email address
+          $ref: '#/components/responses/ValidationError'
         "401":
-          description: Invalid login credentials
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Invalid email or password
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Internal server error
+          $ref: '#/components/responses/UnauthorizedError'
 
   /users/profile:
     get:
-      tags:
-        - Users
-      summary: Get user profile
-      description: Get the currently authenticated user's profile
+      tags: [Users]
+      summary: Get current user profile
       security:
         - bearerAuth: []
       responses:
         "200":
-          description: User profile fetched successfully
+          description: Profile returned
           content:
             application/json:
               schema:
@@ -241,54 +93,11 @@ paths:
                       user:
                         $ref: '#/components/schemas/UserResponse'
         "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Unauthorized
-        "409":
-          description: Artist name already in use
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Artist name is already in use.
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Internal server error
+          $ref: '#/components/responses/UnauthorizedError'
 
     patch:
-      tags:
-        - Users
-      summary: Upsert artist profile
-      description: >
-        Idempotent upsert of the authenticated user's artist profile.
-        Promotes the user to the artist role if not already one, then sets all
-        provided profile fields. Calling this endpoint multiple times with the
-        same body always produces the same result.
+      tags: [Users]
+      summary: Update or become artist
       security:
         - bearerAuth: []
       requestBody:
@@ -299,7 +108,7 @@ paths:
               $ref: '#/components/schemas/BecomeArtistInput'
       responses:
         "200":
-          description: Profile updated successfully
+          description: Profile updated
           content:
             application/json:
               schema:
@@ -317,64 +126,38 @@ paths:
                       user:
                         $ref: '#/components/schemas/UserResponse'
         "400":
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  errors:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        field:
-                          type: string
-                          example: bio
-                        message:
-                          type: string
-                          example: Bio must be at least 20 characters
+          $ref: '#/components/responses/ValidationError'
         "401":
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Unauthorized
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: error
-                  message:
-                    type: string
-                    example: Internal server error
+          $ref: '#/components/responses/UnauthorizedError'
+        "409":
+          $ref: '#/components/responses/ConflictError'
 
   /users/account:
     delete:
-      tags:
-        - Users
-      summary: Delete user
-      description: Delete the currently authenticated user account
+      tags: [Users]
+      summary: Delete current user account
       security:
         - bearerAuth: []
       responses:
         "200":
-          description: Account deleted successfully
+          description: Account deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /artworks:
+    get:
+      tags: [Artworks]
+      summary: List artworks
+      parameters:
+        - $ref: '#/components/parameters/CategoryQuery'
+        - $ref: '#/components/parameters/ArtistIdQuery'
+      responses:
+        "200":
+          description: Artworks fetched
           content:
             application/json:
               schema:
@@ -385,9 +168,64 @@ paths:
                     example: success
                   message:
                     type: string
-                    example: Account deleted successfully
+                    example: Artworks retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      artworks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ArtworkResponse'
+
+    post:
+      tags: [Artworks]
+      summary: Create artwork
+      description: Requires artist role. Uses multipart/form-data with image files.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateArtworkFormData'
+      responses:
+        "201":
+          description: Artwork created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Artwork created successfully
+                  data:
+                    type: object
+                    properties:
+                      artwork:
+                        $ref: '#/components/schemas/ArtworkResponse'
+        "400":
+          $ref: '#/components/responses/ValidationError'
         "401":
-          description: Unauthorized
+          $ref: '#/components/responses/UnauthorizedError'
+        "403":
+          $ref: '#/components/responses/ForbiddenError'
+
+  /artworks/my-artworks:
+    get:
+      tags: [Artworks]
+      summary: List my artworks
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CategoryQuery'
+      responses:
+        "200":
+          description: Artist artworks fetched
           content:
             application/json:
               schema:
@@ -395,12 +233,31 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: error
+                    example: success
                   message:
                     type: string
-                    example: Unauthorized
-        "500":
-          description: Server error
+                    example: My artworks retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      artworks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ArtworkResponse'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "403":
+          $ref: '#/components/responses/ForbiddenError'
+
+  /artworks/{id}:
+    get:
+      tags: [Artworks]
+      summary: Get artwork by id
+      parameters:
+        - $ref: '#/components/parameters/ArtworkIdPath'
+      responses:
+        "200":
+          description: Artwork fetched
           content:
             application/json:
               schema:
@@ -408,10 +265,83 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: error
+                    example: success
                   message:
                     type: string
-                    example: Internal server error
+                    example: Artwork retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      artwork:
+                        $ref: '#/components/schemas/ArtworkResponse'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+
+    patch:
+      tags: [Artworks]
+      summary: Update artwork
+      description: Requires artist role and artwork ownership. Uses multipart/form-data.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArtworkIdPath'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UpdateArtworkFormData'
+      responses:
+        "200":
+          description: Artwork updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Artwork updated successfully
+                  data:
+                    type: object
+                    properties:
+                      artwork:
+                        $ref: '#/components/schemas/ArtworkResponse'
+        "400":
+          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "403":
+          $ref: '#/components/responses/ForbiddenError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+
+    delete:
+      tags: [Artworks]
+      summary: Soft delete artwork
+      description: Marks artwork as inactive (is_active=false).
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArtworkIdPath'
+      responses:
+        "200":
+          description: Artwork soft deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "403":
+          $ref: '#/components/responses/ForbiddenError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "409":
+          $ref: '#/components/responses/ConflictError'
 
 components:
   securitySchemes:
@@ -419,16 +349,111 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  parameters:
+    ArtworkIdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CategoryQuery:
+      name: category
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - لوحات فنية
+          - تطريز فلسطيني
+          - خزف وفخار
+          - خط عربي
+          - تصوير فوتوغرافي
+          - نحت ومجسمات
+    ArtistIdQuery:
+      name: artist_id
+      in: query
+      required: false
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFoundError:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ConflictError:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
   schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: Ok Healthy
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: Something went wrong
+
+    MessageResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Operation completed successfully
+
     SignupInput:
       type: object
+      required: [firstName, lastName, email, password, confirmPassword]
       properties:
         firstName:
           type: string
-          example: maryam
+          minLength: 2
+          example: Maryam
         lastName:
           type: string
-          example: rw
+          minLength: 2
+          example: Rw
         email:
           type: string
           format: email
@@ -436,20 +461,17 @@ components:
         password:
           type: string
           format: password
+          minLength: 8
           example: Password123!
         confirmPassword:
           type: string
           format: password
+          minLength: 8
           example: Password123!
-      required:
-        - firstName
-        - lastName
-        - email
-        - password
-        - confirmPassword
 
     LoginInput:
       type: object
+      required: [email, password]
       properties:
         email:
           type: string
@@ -458,13 +480,41 @@ components:
         password:
           type: string
           format: password
+          minLength: 8
           example: Password123!
-      required:
-        - email
-        - password
+
+    AuthSuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Login successful
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example
+            user:
+              $ref: '#/components/schemas/UserResponse'
+
+    SocialMediaItem:
+      type: object
+      required: [platform, url]
+      properties:
+        platform:
+          type: string
+          enum: [instagram, facebook, linkedin, pinterest, x]
+        url:
+          type: string
+          format: uri
 
     BecomeArtistInput:
       type: object
+      required: [artistName, bio, location, phone]
       properties:
         artistName:
           type: string
@@ -474,7 +524,6 @@ components:
           type: string
           minLength: 20
           maxLength: 1000
-          example: I am a passionate artist specializing in digital illustrations and modern art.
         location:
           type: string
           minLength: 3
@@ -482,35 +531,12 @@ components:
           example: Nablus
         phone:
           type: string
-          pattern: '^\d{10}$'
           maxLength: 50
           example: "0591234567"
         socialMedia:
           type: array
           items:
-            type: object
-            properties:
-              platform:
-                type: string
-                enum: [instagram, facebook, linkedin, pinterest, x]
-                example: instagram
-              url:
-                type: string
-                format: uri
-                example: https://instagram.com/batool._.sweiseh
-            required:
-              - platform
-              - url
-          example:
-            - platform: instagram
-              url: https://instagram.com/batool._.sweiseh
-            - platform: x
-              url: https://x.com/batool_sweiseh
-      required:
-        - artistName
-        - bio
-        - location
-        - phone
+            $ref: '#/components/schemas/SocialMediaItem'
 
     UserResponse:
       type: object
@@ -518,51 +544,193 @@ components:
         id:
           type: string
           format: uuid
-          example: "550e8400-e29b-41d4-a716-446655440000"
         firstName:
           type: string
-          example: maryam
         lastName:
           type: string
-          example: rw
         email:
           type: string
           format: email
-          example: maryam@example.com
         role:
           type: string
           enum: [user, artist]
-          example: artist
         artistName:
           type: string
-          example: Basmala
+          nullable: true
         bio:
           type: string
-          example: I am a passionate artist specializing in digital illustrations and modern art.
+          nullable: true
         location:
           type: string
-          example: Nablus
+          nullable: true
         phone:
           type: string
-          example: "0591234567"
+          nullable: true
         socialMedia:
           type: array
           items:
-            type: object
-            properties:
-              platform:
-                type: string
-                enum: [instagram, facebook, linkedin, pinterest, x]
-                example: instagram
-              url:
-                type: string
-                format: uri
-                example: https://instagram.com/batool._.sweiseh
-            required:
-              - platform
-              - url
-          example:
-            - platform: instagram
-              url: https://instagram.com/batool._.sweiseh
-            - platform: x
-              url: https://x.com/batool_sweiseh
+            $ref: '#/components/schemas/SocialMediaItem'
+
+    ArtworkImage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        filename:
+          type: string
+        alt_text:
+          type: string
+          nullable: true
+        is_featured:
+          type: boolean
+        sort_order:
+          type: integer
+
+    ArtworkArtistInfo:
+      type: object
+      properties:
+        artist_name:
+          type: string
+          nullable: true
+        first_name:
+          type: string
+          nullable: true
+        last_name:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+
+    ArtworkResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum:
+            - لوحات فنية
+            - تطريز فلسطيني
+            - خزف وفخار
+            - خط عربي
+            - تصوير فوتوغرافي
+            - نحت ومجسمات
+        artist_id:
+          type: string
+          format: uuid
+        price:
+          type: number
+        quantity:
+          type: integer
+        is_active:
+          type: boolean
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        users:
+          oneOf:
+            - $ref: '#/components/schemas/ArtworkArtistInfo'
+            - type: array
+              items:
+                $ref: '#/components/schemas/ArtworkArtistInfo'
+        artwork_images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtworkImage'
+
+    CreateArtworkFormData:
+      type: object
+      required: [title, description, category, price, quantity, images]
+      properties:
+        title:
+          type: string
+          minLength: 2
+        description:
+          type: string
+          minLength: 10
+        category:
+          type: string
+          enum:
+            - لوحات فنية
+            - تطريز فلسطيني
+            - خزف وفخار
+            - خط عربي
+            - تصوير فوتوغرافي
+            - نحت ومجسمات
+        price:
+          type: number
+          minimum: 0
+        quantity:
+          type: integer
+          minimum: 0
+        mainImageIndex:
+          type: integer
+          minimum: 0
+          example: 0
+        images:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            format: binary
+
+    UpdateArtworkFormData:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 2
+        description:
+          type: string
+          minLength: 10
+        category:
+          type: string
+          enum:
+            - لوحات فنية
+            - تطريز فلسطيني
+            - خزف وفخار
+            - خط عربي
+            - تصوير فوتوغرافي
+            - نحت ومجسمات
+        price:
+          type: number
+          minimum: 0
+        quantity:
+          type: integer
+          minimum: 0
+        mainImageIndex:
+          type: integer
+          minimum: 0
+        existingImages:
+          description: Repeat this field for each existing filename to keep.
+          type: array
+          items:
+            type: string
+        imageOrder:
+          description: Repeat values like existing:<filename> or new:<index>.
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          maxItems: 5
+          items:
+            type: string
+            format: binary

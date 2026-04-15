@@ -3,13 +3,27 @@ import { AuthRequest } from "../middlewares/auth.middleware";
 import { deleteUserAccount, upsertArtistProfile, getUserProfile } from "../services/user.service";
 import type { BecomeArtistInput } from "../types/auth.types";
 
+const normalizeSocialMedia = (socialMedia: unknown) => {
+  if (!socialMedia) return [];
+  if (Array.isArray(socialMedia)) return socialMedia;
+  if (typeof socialMedia === "string") {
+    try {
+      const parsed = JSON.parse(socialMedia);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
 export const getProfile = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
     if (!req.userId) {
-      res.status(401).json({ status: "error", message: "Unauthorized" });
+      res.status(401).json({ status: "error", message: "يجب تسجيل الدخول أولاً" });
       return;
     }
 
@@ -25,7 +39,7 @@ export const getProfile = async (
       bio: user.bio,
       location: user.location,
       phone: user.phone,
-      socialMedia: user.social_media ? JSON.parse(user.social_media) : [],
+      socialMedia: normalizeSocialMedia(user.social_media),
     };
 
     res.status(200).json({
@@ -36,7 +50,7 @@ export const getProfile = async (
     const statusCode = error.statusCode ?? 500;
     res.status(statusCode).json({
       status: "error",
-      message: error.message ?? "Internal server error",
+      message: error.message ?? "حدث خطأ داخلي في الخادم",
     });
   }
 };
@@ -49,7 +63,7 @@ export const deleteUser = async (
     if (!req.userId) {
       res.status(401).json({
         status: "error",
-        message: "Unauthorized",
+        message: "يجب تسجيل الدخول أولاً",
       });
       return;
     }
@@ -58,13 +72,13 @@ export const deleteUser = async (
 
     res.status(200).json({
       status: "success",
-      message: "Account deleted successfully",
+      message: "تم حذف الحساب بنجاح",
     });
   } catch (error: any) {
     const statusCode = error.statusCode ?? 500;
     res.status(statusCode).json({
       status: "error",
-      message: error.message ?? "Internal server error",
+      message: error.message ?? "حدث خطأ داخلي في الخادم",
     });
   }
 };
@@ -77,7 +91,7 @@ export const updateProfile = async (
     if (!req.userId) {
       res.status(401).json({
         status: "error",
-        message: "Unauthorized",
+        message: "يجب تسجيل الدخول أولاً",
       });
       return;
     }
@@ -95,19 +109,19 @@ export const updateProfile = async (
       bio: user.bio,
       location: user.location,
       phone: user.phone,
-      socialMedia: user.social_media ? JSON.parse(user.social_media) : [],
+      socialMedia: normalizeSocialMedia(user.social_media),
     };
 
     res.status(200).json({
       status: "success",
-      message: "Profile updated successfully",
+      message: "تم تحديث الملف الشخصي بنجاح",
       data: { user: userResponse },
     });
   } catch (error: any) {
     const statusCode = error.statusCode ?? 500;
     res.status(statusCode).json({
       status: "error",
-      message: error.message ?? "Internal server error",
+      message: error.message ?? "حدث خطأ داخلي في الخادم",
     });
   }
 };

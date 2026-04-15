@@ -27,7 +27,7 @@ describe("POST /api/auth/login", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("success");
-    expect(res.body.message).toBe("Login successful");
+    expect(res.body.message).toBe("تم تسجيل الدخول بنجاح");
     expect(res.body.data.token).toBeDefined();
     expect(res.body.data.user).toBeDefined();
   });

@@ -6,7 +6,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     const { token, user } = await signupUser(req.body);
     res.status(201).json({
       status: "success",
-      message: "User created successfully",
+      message: "تم إنشاء الحساب بنجاح",
       data: { token, user },
     });
     
@@ -14,7 +14,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     const statusCode = error.statusCode ?? 500;
     res.status(statusCode).json({
       status: "error",
-      message: error.message ?? "Internal server error",
+      message: error.message ?? "حدث خطأ داخلي في الخادم",
     });
   }
 };
@@ -24,14 +24,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const { token, user } = await loginUser(req.body);
     res.status(200).json({
       status: "success",
-      message: "Login successful",
+      message: "تم تسجيل الدخول بنجاح",
       data: { token, user },
     });
   } catch (error: any) {
     const statusCode = error.statusCode ?? 500;
     res.status(statusCode).json({
       status: "error",
-      message: error.message ?? "Internal server error",
+      message: error.message ?? "حدث خطأ داخلي في الخادم",
     });
   }
 };
