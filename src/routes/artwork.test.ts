@@ -10,9 +10,11 @@ import {
   deleteArtwork,
   getMyArtworks,
 } from "../services/artwork.service";
+import { extractArtworkStoragePath, removeArtworkObjects, uploadArtworkFiles } from "../services/artwork-storage.service";
 import { getSupabase } from "../config/supabase";
 
 jest.mock("../services/artwork.service");
+jest.mock("../services/artwork-storage.service");
 jest.mock("../config/supabase", () => ({
   getSupabase: jest.fn(),
 }));
@@ -23,6 +25,9 @@ const mockGetArtworkById = getArtworkById as jest.MockedFunction<typeof getArtwo
 const mockUpdateArtwork = updateArtwork as jest.MockedFunction<typeof updateArtwork>;
 const mockDeleteArtwork = deleteArtwork as jest.MockedFunction<typeof deleteArtwork>;
 const mockGetMyArtworks = getMyArtworks as jest.MockedFunction<typeof getMyArtworks>;
+const mockExtractArtworkStoragePath = extractArtworkStoragePath as jest.MockedFunction<typeof extractArtworkStoragePath>;
+const mockUploadArtworkFiles = uploadArtworkFiles as jest.MockedFunction<typeof uploadArtworkFiles>;
+const mockRemoveArtworkObjects = removeArtworkObjects as jest.MockedFunction<typeof removeArtworkObjects>;
 const mockGetSupabase = getSupabase as jest.MockedFunction<typeof getSupabase>;
 
 const testJwtSecret = process.env["JWT_SECRET"] ?? "dev-secret";
@@ -58,6 +63,9 @@ const mockArtistRoleCheck = (role: "artist" | "user" = "artist") => {
 beforeEach(() => {
   jest.clearAllMocks();
   mockArtistRoleCheck("artist");
+  mockExtractArtworkStoragePath.mockImplementation((value) => value);
+  mockUploadArtworkFiles.mockResolvedValue([]);
+  mockRemoveArtworkObjects.mockResolvedValue();
 });
 
 describe("POST /api/artworks", () => {
@@ -101,6 +109,7 @@ describe("POST /api/artworks", () => {
 
   it("should create artwork successfully with multipart upload", async () => {
     const token = buildToken("artist-1");
+    mockUploadArtworkFiles.mockResolvedValueOnce(["artist-1/path-1.png"]);
     mockCreateArtwork.mockResolvedValueOnce({
       id: "art-1",
       title: "sunset study",
@@ -128,7 +137,7 @@ describe("POST /api/artworks", () => {
     const payload = mockCreateArtwork.mock.calls[0][1];
     expect(mockCreateArtwork.mock.calls[0][0]).toBe("artist-1");
     expect(payload.images).toHaveLength(1);
-    expect(payload.images[0]?.filename).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.[a-z0-9]+$/i);
+    expect(payload.images[0]?.filename).toBe("artist-1/path-1.png");
     expect(payload.images[0]?.is_featured).toBe(true);
   });
 });
@@ -217,6 +226,7 @@ describe("PATCH /api/artworks/:id", () => {
 
   it("should update artwork successfully with existing and new images", async () => {
     const token = buildToken("artist-1");
+    mockUploadArtworkFiles.mockResolvedValueOnce(["artist-1/new-image.png"]);
     mockUpdateArtwork.mockResolvedValueOnce({
       artwork: { id: "art-1", title: "updated" },
       oldImageFilenames: ["old-1.jpg"],
@@ -247,7 +257,7 @@ describe("PATCH /api/artworks/:id", () => {
     const mappedImages = updatePayload.images || [];
     expect(mappedImages).toHaveLength(2);
     expect(mappedImages[0]?.filename).toBe("old-1.jpg");
-    expect(mappedImages[1]?.filename).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.[a-z0-9]+$/i);
+    expect(mappedImages[1]?.filename).toBe("artist-1/new-image.png");
   });
 
   it("should propagate service status errors", async () => {

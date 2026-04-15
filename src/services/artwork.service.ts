@@ -1,4 +1,5 @@
 import { getSupabase } from '../config/supabase';
+import { toArtworkPublicUrl } from './artwork-storage.service';
 import { ArtworkCategory } from '../types/artwork.types';
 
 const createStatusError = (message: string, statusCode: number) => {
@@ -11,12 +12,10 @@ export interface CreateArtworkData {
   title: string;
   description: string;
   category: ArtworkCategory;
-  //category: 'لوحات فنية' | 'تطريز فلسطيني' | 'خزف وفخار' | 'خط عربي' | 'تصوير فوتوغرافي' | 'نحت ومجسمات';
   price: number;
   quantity: number;
   images: { filename: string; alt_text?: string; is_featured?: boolean }[];
 }
-
 
 export interface ArtworkQueryFilters {
   category?: string;
@@ -86,6 +85,22 @@ const sanitizeArtworkContactInfo = <T extends Record<string, any> | null>(artwor
   } as T;
 };
 
+const attachArtworkImageUrls = <T extends Record<string, any> | null>(artwork: T): T => {
+  if (!artwork || !Array.isArray(artwork.artwork_images)) {
+    return artwork;
+  }
+
+  return {
+    ...artwork,
+    artwork_images: artwork.artwork_images.map((image: Record<string, any>) => ({
+      ...image,
+      storage_path: image.filename,
+      filename: toArtworkPublicUrl(image.filename),
+      url: toArtworkPublicUrl(image.filename),
+    })),
+  } as T;
+};
+
 export const createArtwork = async (artistId: string, artworkData: CreateArtworkData) => {
   const supabase = getSupabase();
   
@@ -144,7 +159,7 @@ export const createArtwork = async (artistId: string, artworkData: CreateArtwork
     
     if (completeError) throw completeError;
     
-    return completeArtwork;
+    return attachArtworkImageUrls(completeArtwork);
     
   } catch (error) {
     throw error;
@@ -199,7 +214,7 @@ export const getArtworks = async (
   if (error) throw error;
   
   return {
-    artworks: (data || []).map((artwork) => sanitizeArtworkContactInfo(artwork, showContactInfo)),
+    artworks: (data || []).map((artwork) => sanitizeArtworkContactInfo(attachArtworkImageUrls(artwork), showContactInfo)),
     totalCount: count ?? 0,
     page,
     limit,
@@ -228,7 +243,7 @@ export const getArtworkById = async (id: string, showContactInfo: boolean = fals
   
   if (error) throw error;
   
-  return sanitizeArtworkContactInfo(data, showContactInfo);
+  return sanitizeArtworkContactInfo(attachArtworkImageUrls(data), showContactInfo);
 };
 
 export const updateArtwork = async (id: string, artistId: string, updateData: Partial<CreateArtworkData>) => {
@@ -371,7 +386,7 @@ export const updateArtwork = async (id: string, artistId: string, updateData: Pa
   if (completeError) throw completeError;
   
   return {
-    artwork: completeArtwork,
+    artwork: attachArtworkImageUrls(completeArtwork),
     oldImageFilenames,
   };
 };
@@ -457,7 +472,7 @@ export const getMyArtworks = async (
   if (error) throw error;
   
   return {
-    artworks: data || [],
+    artworks: (data || []).map((artwork) => attachArtworkImageUrls(artwork)),
     totalCount: count ?? 0,
     page,
     limit,

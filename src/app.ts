@@ -21,7 +21,6 @@ app.use(
 );
 
 app.use(express.json());
-app.use("/images", express.static(path.resolve(__dirname, "../images")));
 
 const swaggerPath = path.resolve(__dirname, "../swagger.yaml");
 const swaggerDocument = YAML.load(swaggerPath);
@@ -52,7 +51,7 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     }
 
     if (err.code === "LIMIT_FILE_COUNT") {
-      res.status(400).json({ status: "error", message: "الحد الأقصى لعدد الصور هو 5" });
+      res.status(400).json({ status: "error", message: "الحد الأقصى لعدد الصور هو 3" });
       return;
     }
 
