@@ -1,4 +1,5 @@
 import { getSupabase } from '../config/supabase';
+import { ArtworkCategory } from '../types/artwork.types';
 
 const createStatusError = (message: string, statusCode: number) => {
   const error = new Error(message) as Error & { statusCode?: number };
@@ -9,11 +10,13 @@ const createStatusError = (message: string, statusCode: number) => {
 export interface CreateArtworkData {
   title: string;
   description: string;
-  category: 'لوحات فنية' | 'تطريز فلسطيني' | 'خزف وفخار' | 'خط عربي' | 'تصوير فوتوغرافي' | 'نحت ومجسمات';
+  category: ArtworkCategory;
+  //category: 'لوحات فنية' | 'تطريز فلسطيني' | 'خزف وفخار' | 'خط عربي' | 'تصوير فوتوغرافي' | 'نحت ومجسمات';
   price: number;
   quantity: number;
   images: { filename: string; alt_text?: string; is_featured?: boolean }[];
 }
+
 
 export interface ArtworkQueryFilters {
   category?: string;

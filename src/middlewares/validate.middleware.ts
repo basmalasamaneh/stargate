@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { z, ZodSchema } from "zod";
 import { SocialMediaPlatform } from "../types/auth.types";
+import { ArtworkCategory, ARTWORK_CATEGORIES } from "../types/artwork.types";
 
 const artworkCategoryMap: Record<string, string> = {
   paintings: "لوحات فنية",
@@ -106,7 +107,9 @@ export const becomeArtistSchema = z.object({
 export const createArtworkSchema = z.preprocess(normalizeArtworkBody, z.object({
   title: z.string().min(2, "العنوان يجب أن يكون على الأقل حرفين"),
   description: z.string().min(10, "الوصف يجب أن يكون على الأقل 10 أحرف"),
-  category: z.enum(['لوحات فنية', 'تطريز فلسطيني', 'خزف وفخار', 'خط عربي', 'تصوير فوتوغرافي', 'نحت ومجسمات']),
+  category: z.enum(ARTWORK_CATEGORIES as [string, ...string[]], {
+    message: `الفئة يجب أن تكون واحدة من: ${ARTWORK_CATEGORIES.join(", ")}`,
+  }),
   price: z.coerce.number().positive("السعر يجب أن يكون موجبًا"),
   quantity: z.coerce.number().int().min(0, "الكمية يجب أن تكون غير سالبة"),
   images: z.array(normalizedImageSchema).min(1, "مطلوب صورة واحدة على الأقل").max(5, "الحد الأقصى 5 صور")
@@ -115,7 +118,9 @@ export const createArtworkSchema = z.preprocess(normalizeArtworkBody, z.object({
 export const updateArtworkSchema = z.preprocess(normalizeArtworkBody, z.object({
   title: z.string().min(2, "العنوان يجب أن يكون على الأقل حرفين").optional(),
   description: z.string().min(10, "الوصف يجب أن يكون على الأقل 10 أحرف").optional(),
-  category: z.enum(['لوحات فنية', 'تطريز فلسطيني', 'خزف وفخار', 'خط عربي', 'تصوير فوتوغرافي', 'نحت ومجسمات']).optional(),
+  category: z.enum(ARTWORK_CATEGORIES as [string, ...string[]], {
+    message: `الفئة يجب أن تكون واحدة من: ${ARTWORK_CATEGORIES.join(", ")}`,
+  }).optional(),
   price: z.coerce.number().positive("السعر يجب أن يكون موجبًا").optional(),
   quantity: z.coerce.number().int().min(0, "الكمية يجب أن تكون غير سالبة").optional(),
   images: z.array(normalizedImageSchema).min(1, "مطلوب صورة واحدة على الأقل").max(5, "الحد الأقصى 5 صور").optional()
