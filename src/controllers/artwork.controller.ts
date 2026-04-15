@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { createArtwork, getArtworks, getArtworkById, updateArtwork as updateArtworkService, deleteArtwork as deleteArtworkService, getMyArtworks as getMyArtworksService } from '../services/artwork.service';
 import type { CreateArtworkData } from '../services/artwork.service';
+import { ArtworkCategory } from '../types/artwork.types';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { createArtworkSchema, updateArtworkSchema } from '../middlewares/validate.middleware';
 import { z } from 'zod';
@@ -115,7 +116,7 @@ export const addArtwork = async (req: AuthRequest, res: Response): Promise<void>
     const artworkData: CreateArtworkData = {
       title: validationResult.data.title,
       description: validationResult.data.description,
-      category: validationResult.data.category,
+      category: validationResult.data.category as ArtworkCategory,
       price: validationResult.data.price,
       quantity: validationResult.data.quantity,
       images: validationResult.data.images.map((image) => ({
@@ -295,7 +296,7 @@ export const updateArtwork = async (req: AuthRequest, res: Response): Promise<vo
 
     if (validationResult.data.title !== undefined) cleanedUpdateData.title = validationResult.data.title;
     if (validationResult.data.description !== undefined) cleanedUpdateData.description = validationResult.data.description;
-    if (validationResult.data.category !== undefined) cleanedUpdateData.category = validationResult.data.category;
+    if (validationResult.data.category !== undefined) cleanedUpdateData.category = validationResult.data.category as ArtworkCategory;
     if (validationResult.data.price !== undefined) cleanedUpdateData.price = validationResult.data.price;
     if (validationResult.data.quantity !== undefined) cleanedUpdateData.quantity = validationResult.data.quantity;
 

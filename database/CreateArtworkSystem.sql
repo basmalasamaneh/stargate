@@ -128,7 +128,7 @@ BEGIN
   END IF;
 
   IF TG_OP = 'DELETE' THEN
-    IF (SELECT COUNT(*) FROM artwork_images WHERE artwork_id = OLD.artwork_id) < 1 THEN
+    IF (SELECT COUNT(*) FROM artwork_images WHERE artwork_id = OLD.artwork_id) <= 1 THEN
       RAISE EXCEPTION 'يجب أن يحتوي العمل الفني على صورة واحدة على الأقل';
     END IF;
   END IF;
