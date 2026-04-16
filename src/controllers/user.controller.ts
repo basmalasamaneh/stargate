@@ -1,4 +1,4 @@
-import { Response } from "express";
+﻿import { Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { deleteUserAccount, upsertArtistProfile, getUserProfile } from "../services/user.service";
 import type { BecomeArtistInput } from "../types/auth.types";
@@ -47,7 +47,7 @@ export const getProfile = async (
       data: { user: userResponse },
     });
   } catch (error: any) {
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: "error",
       message: error.message ?? "حدث خطأ داخلي في الخادم",
@@ -75,7 +75,7 @@ export const deleteUser = async (
       message: "تم حذف الحساب بنجاح",
     });
   } catch (error: any) {
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: "error",
       message: error.message ?? "حدث خطأ داخلي في الخادم",
@@ -118,7 +118,7 @@ export const updateProfile = async (
       data: { user: userResponse },
     });
   } catch (error: any) {
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: "error",
       message: error.message ?? "حدث خطأ داخلي في الخادم",

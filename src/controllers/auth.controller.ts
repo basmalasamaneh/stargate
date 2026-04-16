@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { loginUser, signupUser } from "../services/auth.service";
 
 export const signup = async (req: Request, res: Response): Promise<void> => {
@@ -11,7 +11,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     });
     
   } catch (error: any) {
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: "error",
       message: error.message ?? "حدث خطأ داخلي في الخادم",
@@ -28,7 +28,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       data: { token, user },
     });
   } catch (error: any) {
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: "error",
       message: error.message ?? "حدث خطأ داخلي في الخادم",

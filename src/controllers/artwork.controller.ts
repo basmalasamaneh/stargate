@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+﻿import { Request, Response } from 'express';
 import { createArtwork, getArtworks, getArtworkById, updateArtwork as updateArtworkService, deleteArtwork as deleteArtworkService, getMyArtworks as getMyArtworksService } from '../services/artwork.service';
 import type { CreateArtworkData } from '../services/artwork.service';
 import { extractArtworkStoragePath, removeArtworkObjects, uploadArtworkFiles } from '../services/artwork-storage.service';
@@ -130,7 +130,7 @@ export const addArtwork = async (req: AuthRequest, res: Response): Promise<void>
     if (uploadedStoragePaths.length > 0) {
       await removeArtworkObjects(uploadedStoragePaths).catch(() => undefined);
     }
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: 'error',
       message: error.message ?? 'حدث خطأ داخلي في الخادم'
@@ -180,7 +180,7 @@ export const listArtworks = async (req: Request, res: Response): Promise<void> =
     });
     
   } catch (error: any) {
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: 'error',
       message: error.message ?? 'حدث خطأ داخلي في الخادم'
@@ -210,7 +210,7 @@ export const getArtwork = async (req: Request, res: Response): Promise<void> => 
     });
     
   } catch (error: any) {
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: 'error',
       message: error.message ?? 'حدث خطأ داخلي في الخادم'
@@ -334,7 +334,7 @@ export const updateArtwork = async (req: AuthRequest, res: Response): Promise<vo
     if (uploadedStoragePaths.length > 0) {
       await removeArtworkObjects(uploadedStoragePaths).catch(() => undefined);
     }
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: 'error',
       message: error.message ?? 'حدث خطأ داخلي في الخادم'
@@ -362,7 +362,7 @@ export const deleteArtwork = async (req: AuthRequest, res: Response): Promise<vo
     });
     
   } catch (error: any) {
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: 'error',
       message: error.message ?? 'حدث خطأ داخلي في الخادم'
@@ -409,7 +409,7 @@ export const getMyArtworks = async (req: AuthRequest, res: Response): Promise<vo
     });
     
   } catch (error: any) {
-    const statusCode = error.statusCode ?? 500;
+    const statusCode = Number(error.statusCode ?? 500) || 500;
     res.status(statusCode).json({
       status: 'error',
       message: error.message ?? 'حدث خطأ داخلي في الخادم'
