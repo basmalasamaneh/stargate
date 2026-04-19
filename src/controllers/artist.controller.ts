@@ -30,10 +30,10 @@ export const getArtistArtworksById = async (req: AuthRequest, res: Response): Pr
     const page = typeof req.query['page'] === 'string' ? Number(req.query['page']) : undefined;
     const limit = typeof req.query['limit'] === 'string' ? Number(req.query['limit']) : undefined;
 
-    const filters: { category?: string; page?: number; limit?: number } = {}; // ← التعديل هون
-    if (category !== undefined) filters.category = category;                  // ← التعديل هون
-    if (page !== undefined) filters.page = page;                              // ← التعديل هون
-    if (limit !== undefined) filters.limit = limit;                           // ← التعديل هون
+    const filters: { category?: string; page?: number; limit?: number } = {};
+    if (category !== undefined) filters.category = category;
+    if (page !== undefined) filters.page = page;
+    if (limit !== undefined) filters.limit = limit;
 
     const result = await getArtistArtworks(id, filters);
     res.status(200).json({ status: 'success', data: result });
