@@ -9,7 +9,7 @@ import healthRouter from "./routes/health";
 import authRouter from "./routes/auth.routes";
 import usersRouter from "./routes/users.routes";
 import artworkRouter from "./routes/artwork.routes";
-
+import artistRouter from './routes/artist.routes'
 const app: Application = express();
 
 // Enable CORS for frontend
@@ -41,6 +41,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use("/api", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
+app.use('/api/artists', artistRouter);
 app.use("/api/artworks", artworkRouter);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
