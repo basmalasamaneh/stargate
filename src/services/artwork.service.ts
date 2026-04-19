@@ -1,5 +1,6 @@
 import { getSupabase } from '../config/supabase';
 import { toArtworkPublicUrl } from './artwork-storage.service';
+import { toProfileImagePublicUrl } from './profile-image-storage.service';
 import { ArtworkCategory } from '../types/artwork.types';
 
 const createStatusError = (message: string, statusCode: number) => {
@@ -90,8 +91,19 @@ const attachArtworkImageUrls = <T extends Record<string, any> | null>(artwork: T
     return artwork;
   }
 
+  const artistRecord = Array.isArray(artwork.users) ? artwork.users[0] : artwork.users;
+  const usersWithProfileImage = artistRecord
+    ? {
+        ...artistRecord,
+        profile_image: artistRecord.profile_image
+          ? toProfileImagePublicUrl(artistRecord.profile_image)
+          : null,
+      }
+    : artwork.users;
+
   return {
     ...artwork,
+    users: usersWithProfileImage,
     artwork_images: artwork.artwork_images.map((image: Record<string, any>) => ({
       ...image,
       storage_path: image.filename,
@@ -149,6 +161,7 @@ export const createArtwork = async (artistId: string, artworkData: CreateArtwork
           artist_name,
           first_name,
           last_name,
+          profile_image,
           location,
           phone
         ),
@@ -183,6 +196,7 @@ export const getArtworks = async (
         artist_name,
         first_name,
         last_name,
+        profile_image,
         location,
         phone
       ),
@@ -211,7 +225,15 @@ export const getArtworks = async (
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
   
-  if (error) throw error;
+  // PGRST103 = "Requested range not satisfiable" (HTTP 416)
+  // Happens when the requested page is beyond the available data (e.g. after filtering).
+  // Treat it as an empty page instead of an error.
+  if (error) {
+    if ((error as any).code === 'PGRST103') {
+      return { artworks: [], totalCount: 0, page, limit };
+    }
+    throw error;
+  }
   
   return {
     artworks: (data || []).map((artwork) => sanitizeArtworkContactInfo(attachArtworkImageUrls(artwork), showContactInfo)),
@@ -232,6 +254,7 @@ export const getArtworkById = async (id: string, showContactInfo: boolean = fals
         artist_name,
         first_name,
         last_name,
+        profile_image,
         location,
         phone
       ),
@@ -375,6 +398,7 @@ export const updateArtwork = async (id: string, artistId: string, updateData: Pa
         artist_name,
         first_name,
         last_name,
+        profile_image,
         location,
         phone
       ),
@@ -469,7 +493,12 @@ export const getMyArtworks = async (
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
   
-  if (error) throw error;
+  if (error) {
+    if ((error as any).code === 'PGRST103') {
+      return { artworks: [], totalCount: 0, page, limit };
+    }
+    throw error;
+  }
   
   return {
     artworks: (data || []).map((artwork) => attachArtworkImageUrls(artwork)),

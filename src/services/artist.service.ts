@@ -1,15 +1,21 @@
 import { getSupabase } from '../config/supabase';
+import { toArtworkPublicUrl } from './artwork-storage.service';
+import { toProfileImagePublicUrl } from './profile-image-storage.service';
 
 export const getAllArtists = async () => {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('users')
-    .select('id, first_name, last_name, artist_name, bio, location, role')
+    .select('id, first_name, last_name, artist_name, bio, location, role, artist_since, profile_image')
     .eq('role', 'artist')
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data;
+
+  return (data ?? []).map((artist: any) => ({
+    ...artist,
+    profile_image: artist.profile_image ? toProfileImagePublicUrl(artist.profile_image) : null,
+  }));
 };
 
 export const getArtistProfile = async (artistId: string) => {
@@ -17,7 +23,7 @@ export const getArtistProfile = async (artistId: string) => {
 
   const { data: artist, error } = await supabase
     .from('users')
-    .select('id, first_name, last_name, artist_name, bio, location, phone, social_media, role')
+    .select('id, first_name, last_name, artist_name, bio, location, phone, social_media, role, artist_since, profile_image')
     .eq('id', artistId)
     .eq('role', 'artist')
     .single();
@@ -28,7 +34,10 @@ export const getArtistProfile = async (artistId: string) => {
     throw err;
   }
 
-  return artist;
+  return {
+    ...artist,
+    profile_image: artist.profile_image ? toProfileImagePublicUrl(artist.profile_image) : null,
+  };
 };
 
 export const getArtistArtworks = async (artistId: string, filters: { category?: string; page?: number; limit?: number }) => {
@@ -65,5 +74,16 @@ export const getArtistArtworks = async (artistId: string, filters: { category?: 
   const { data, error, count } = await query;
   if (error) throw new Error(error.message);
 
-  return { artworks: data ?? [], totalCount: count ?? 0, page, limit };
+  const artworksWithUrls = (data ?? []).map((artwork: any) => ({
+    ...artwork,
+    artwork_images: Array.isArray(artwork.artwork_images)
+      ? artwork.artwork_images.map((img: any) => ({
+          ...img,
+          url: toArtworkPublicUrl(img.filename),
+          filename: toArtworkPublicUrl(img.filename),
+        }))
+      : [],
+  }));
+
+  return { artworks: artworksWithUrls, totalCount: count ?? 0, page, limit };
 };

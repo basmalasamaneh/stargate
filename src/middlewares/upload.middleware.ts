@@ -15,3 +15,18 @@ const imageUpload = multer({
 });
 
 export const artworkUpload = imageUpload.array("images", MAX_ARTWORK_IMAGES);
+
+const profileImageUploadInstance = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      cb(new Error("يُسمح برفع ملفات الصور فقط"));
+      return;
+    }
+
+    cb(null, true);
+  },
+});
+
+export const profileImageUpload = profileImageUploadInstance.single("image");

@@ -133,6 +133,45 @@ paths:
         "409":
           $ref: '#/components/responses/ConflictError'
 
+  /users/profile/image:
+    patch:
+      tags: [Users]
+      summary: Upload or replace artist profile image
+      description: Requires authenticated artist user. Uploads one image file and stores it in Supabase Storage.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProfileImageUploadFormData'
+      responses:
+        "200":
+          description: Profile image updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: تم تحديث الصورة الشخصية بنجاح
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/UserResponse'
+        "400":
+          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "403":
+          $ref: '#/components/responses/ForbiddenError'
+
   /users/account:
     delete:
       tags: [Users]
@@ -652,6 +691,14 @@ components:
         artistName:
           type: string
           nullable: true
+        artistSince:
+          type: string
+          format: date-time
+          nullable: true
+        profileImage:
+          type: string
+          format: uri
+          nullable: true
         bio:
           type: string
           nullable: true
@@ -693,6 +740,10 @@ components:
           nullable: true
         last_name:
           type: string
+          nullable: true
+        profile_image:
+          type: string
+          format: uri
           nullable: true
         location:
           type: string
@@ -781,7 +832,7 @@ components:
           example: 0
         images:
           type: array
-          maxItems: 5
+          maxItems: 3
           items:
             type: string
             format: binary
@@ -825,10 +876,18 @@ components:
             type: string
         images:
           type: array
-          maxItems: 5
+          maxItems: 3
           items:
             type: string
             format: binary
+
+    ProfileImageUploadFormData:
+      type: object
+      required: [image]
+      properties:
+        image:
+          type: string
+          format: binary
 
     ArtistSummary:
       type: object
@@ -836,12 +895,20 @@ components:
         id:
           type: string
           format: uuid
-        firstName:
+        first_name:
           type: string
-        lastName:
+        last_name:
           type: string
-        artistName:
+        artist_name:
           type: string
+          nullable: true
+        artist_since:
+          type: string
+          format: date-time
+          nullable: true
+        profile_image:
+          type: string
+          format: uri
           nullable: true
         bio:
           type: string
@@ -861,7 +928,7 @@ components:
             phone:
               type: string
               nullable: true
-            socialMedia:
+            social_media:
               type: array
               items:
                 $ref: '#/components/schemas/SocialMediaItem'
