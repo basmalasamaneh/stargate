@@ -9,7 +9,8 @@ const router = Router();
 
 router.get("/profile", requireAuth, getProfile);
 router.patch("/profile", requireAuth, validate(becomeArtistSchema), updateProfile);
-router.patch("/profile/image", requireAuth, requireArtist, profileImageUpload, uploadArtistProfileImage);
+
+router.patch("/profile/image", requireAuth, requireArtist, ...profileImageUpload, uploadArtistProfileImage);
 router.delete("/account", requireAuth, deleteUser);
 
 export default router;

@@ -1,6 +1,13 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { getAllArtists, getArtistProfile, getArtistArtworks } from '../services/artist.service';
+import { ARTWORK_CATEGORIES } from '../types/artwork.types';
+
+const parseBoundedInt = (value: unknown, fallback: number, max: number): number => {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) return fallback;
+  return Math.min(parsed, max);
+};
 
 export const listArtists = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -26,14 +33,22 @@ export const getArtistById = async (req: AuthRequest, res: Response): Promise<vo
 export const getArtistArtworksById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const id = req.params['id'] as string;
-    const category = typeof req.query['category'] === 'string' ? req.query['category'] : undefined;
-    const page = typeof req.query['page'] === 'string' ? Number(req.query['page']) : undefined;
-    const limit = typeof req.query['limit'] === 'string' ? Number(req.query['limit']) : undefined;
+    const rawCategory = typeof req.query['category'] === 'string' ? req.query['category'].trim() : undefined;
+    const page = parseBoundedInt(req.query['page'], 1, 100000);
+    const limit = parseBoundedInt(req.query['limit'], 12, 100);
 
-    const filters: { category?: string; page?: number; limit?: number } = {};
-    if (category !== undefined) filters.category = category;
-    if (page !== undefined) filters.page = page;
-    if (limit !== undefined) filters.limit = limit;
+    // Only allow known category values to prevent injection/enumeration
+    const category = rawCategory && ARTWORK_CATEGORIES.includes(rawCategory as any)
+      ? rawCategory
+      : undefined;
+
+    if (rawCategory && !category) {
+      res.status(400).json({ status: 'error', message: 'قيمة الفئة غير صالحة' });
+      return;
+    }
+
+    const filters: { category?: string; page?: number; limit?: number } = { page, limit };
+    if (category) filters.category = category;
 
     const result = await getArtistArtworks(id, filters);
     res.status(200).json({ status: 'success', data: result });

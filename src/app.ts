@@ -32,11 +32,13 @@ app.get("/", (req, res) => {
   res.json({ message: "SERVER is running" });
 });
 
-app.get("/api-docs.json", (req, res) => {
-  res.json(swaggerDocument);
-});
+if (process.env.NODE_ENV !== "production") {
+  app.get("/api-docs.json", (_req, res) => {
+    res.json(swaggerDocument);
+  });
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+}
 
 app.use("/api", healthRouter);
 app.use("/api/auth", authRouter);

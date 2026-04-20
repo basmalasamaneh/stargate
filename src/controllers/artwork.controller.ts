@@ -1,4 +1,5 @@
 ﻿import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { createArtwork, getArtworks, getArtworkById, updateArtwork as updateArtworkService, deleteArtwork as deleteArtworkService, getMyArtworks as getMyArtworksService } from '../services/artwork.service';
 import type { CreateArtworkData } from '../services/artwork.service';
 import { extractArtworkStoragePath, removeArtworkObjects, uploadArtworkFiles } from '../services/artwork-storage.service';
@@ -6,6 +7,19 @@ import { ArtworkCategory } from '../types/artwork.types';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import { createArtworkSchema, updateArtworkSchema } from '../middlewares/validate.middleware';
 import { z } from 'zod';
+
+const isValidToken = (authHeader: string | undefined): boolean => {
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+  if (!token) return false;
+  const jwtSecret = process.env['JWT_SECRET'];
+  const canUseDefault = process.env['NODE_ENV'] === 'test' || process.env['NODE_ENV'] === 'development';
+  try {
+    jwt.verify(token, jwtSecret ?? (canUseDefault ? 'dev-secret' : ''));
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const normalizeStoredFilename = (value: string): string => {
   return extractArtworkStoragePath(value);
@@ -141,7 +155,7 @@ export const addArtwork = async (req: AuthRequest, res: Response): Promise<void>
 export const listArtworks = async (req: Request, res: Response): Promise<void> => {
   try {
     const { category, artist_id, search, searchBy, page, limit } = req.query;
-    const showContactInfo = req.headers['authorization'] ? true : false;
+    const showContactInfo = isValidToken(req.headers['authorization']);
     const parsedPage = parsePositiveInt(page, 1, 100000);
     const parsedLimit = parsePositiveInt(limit, 12, 100);
     const searchValue = toOptionalString(search);
@@ -191,7 +205,7 @@ export const listArtworks = async (req: Request, res: Response): Promise<void> =
 export const getArtwork = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const showContactInfo = req.headers['authorization'] ? true : false;
+    const showContactInfo = isValidToken(req.headers['authorization']);
     
     const artwork = await getArtworkById(id as string, showContactInfo);
     

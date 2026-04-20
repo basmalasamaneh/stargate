@@ -98,7 +98,8 @@ paths:
 
     patch:
       tags: [Users]
-      summary: Update or become artist
+      summary: Update artist profile or become artist
+      description: Requires an authenticated user. If the current user is not yet an artist, this request upgrades the account to artist and stores the artist profile. If the user is already an artist, it updates the existing artist profile.
       security:
         - bearerAuth: []
       requestBody:

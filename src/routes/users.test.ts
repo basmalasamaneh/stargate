@@ -3,7 +3,7 @@ import request from "supertest";
 import jwt from "jsonwebtoken";
 import app from "../app";
 import {
-  upsertArtistProfile,
+  saveArtistProfile,
   deleteUserAccount,
   getUserProfile,
   updateArtistProfileImage,
@@ -21,8 +21,8 @@ jest.mock("../services/profile-image-storage.service", () => ({
 
 const mockDeleteUserAccount =
   deleteUserAccount as jest.MockedFunction<typeof deleteUserAccount>;
-const mockUpsertArtistProfile =
-  upsertArtistProfile as jest.MockedFunction<typeof upsertArtistProfile>;
+const mockSaveArtistProfile =
+  saveArtistProfile as jest.MockedFunction<typeof saveArtistProfile>;
 const mockGetUserProfile =
   getUserProfile as jest.MockedFunction<typeof getUserProfile>;
 const mockUpdateArtistProfileImage =
@@ -83,6 +83,13 @@ const validBecomeArtistBody = {
     },
   ],
 };
+
+const pngFixture = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47,
+  0x0d, 0x0a, 0x1a, 0x0a,
+  0x00, 0x00, 0x00, 0x0d,
+  0x49, 0x48, 0x44, 0x52,
+]);
 
 describe("GET /api/users/profile", () => {
   it("should return 200 and profile data on valid token", async () => {
@@ -157,7 +164,11 @@ describe("GET /api/users/profile", () => {
 describe("PATCH /api/users/profile", () => {
   it("should return 200 and upsert artist profile (idempotent)", async () => {
     const token = buildToken("user-123");
-    mockUpsertArtistProfile.mockResolvedValueOnce({
+    mockGetUserProfile.mockResolvedValueOnce({
+      id: "user-123",
+      role: "artist",
+    } as any);
+    mockSaveArtistProfile.mockResolvedValueOnce({
       id: "user-123",
       first_name: "Maryam",
       last_name: "Rw",
@@ -183,7 +194,38 @@ describe("PATCH /api/users/profile", () => {
     expect(res.body.data.user.socialMedia).toEqual(validBecomeArtistBody.socialMedia);
     expect(res.body.data.user.artistSince).toBe("2026-01-10T10:00:00.000Z");
     expect(res.body.data.user.profileImage).toBe("https://cdn.example/user-123/profile-new.png");
-    expect(mockUpsertArtistProfile).toHaveBeenCalledWith("user-123", validBecomeArtistBody);
+    expect(mockSaveArtistProfile).toHaveBeenCalledWith("user-123", validBecomeArtistBody);
+  });
+
+  it("should return registration success message when upgrading a normal user to artist", async () => {
+    const token = buildToken("user-123");
+    mockGetUserProfile.mockResolvedValueOnce({
+      id: "user-123",
+      role: "user",
+    } as any);
+    mockSaveArtistProfile.mockResolvedValueOnce({
+      id: "user-123",
+      first_name: "Maryam",
+      last_name: "Rw",
+      email: "user@example.com",
+      role: "artist",
+      artist_name: validBecomeArtistBody.artistName,
+      artist_since: "2026-01-10T10:00:00.000Z",
+      profile_image: null,
+      bio: validBecomeArtistBody.bio,
+      location: validBecomeArtistBody.location,
+      phone: validBecomeArtistBody.phone,
+      social_media: JSON.stringify(validBecomeArtistBody.socialMedia),
+    } as any);
+
+    const res = await request(app)
+      .patch("/api/users/profile")
+      .set("Authorization", `Bearer ${token}`)
+      .send(validBecomeArtistBody);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("success");
+    expect(res.body.message).toBe("تم تسجيلك كفنان بنجاح");
   });
 
   it("should return 401 when token is missing", async () => {
@@ -193,7 +235,7 @@ describe("PATCH /api/users/profile", () => {
 
     expect(res.status).toBe(401);
     expect(res.body.status).toBe("error");
-    expect(mockUpsertArtistProfile).not.toHaveBeenCalled();
+    expect(mockSaveArtistProfile).not.toHaveBeenCalled();
   });
 
   it("should return 400 when payload is invalid", async () => {
@@ -208,12 +250,16 @@ describe("PATCH /api/users/profile", () => {
 
     expect(res.status).toBe(400);
     expect(res.body.status).toBe("error");
-    expect(mockUpsertArtistProfile).not.toHaveBeenCalled();
+    expect(mockSaveArtistProfile).not.toHaveBeenCalled();
   });
 
   it("should return 500 on service error", async () => {
     const token = buildToken("user-123");
-    mockUpsertArtistProfile.mockRejectedValueOnce(new Error("DB update profile failed"));
+    mockGetUserProfile.mockResolvedValueOnce({
+      id: "user-123",
+      role: "artist",
+    } as any);
+    mockSaveArtistProfile.mockRejectedValueOnce(new Error("DB update profile failed"));
 
     const res = await request(app)
       .patch("/api/users/profile")
@@ -229,7 +275,11 @@ describe("PATCH /api/users/profile", () => {
     const token = buildToken("user-123");
     const conflictError = new Error("Artist name is already in use.") as any;
     conflictError.statusCode = 409;
-    mockUpsertArtistProfile.mockRejectedValueOnce(conflictError);
+    mockGetUserProfile.mockResolvedValueOnce({
+      id: "user-123",
+      role: "artist",
+    } as any);
+    mockSaveArtistProfile.mockRejectedValueOnce(conflictError);
 
     const res = await request(app)
       .patch("/api/users/profile")
@@ -263,7 +313,7 @@ describe("PATCH /api/users/profile/image", () => {
     const res = await request(app)
       .patch("/api/users/profile/image")
       .set("Authorization", `Bearer ${token}`)
-      .attach("image", Buffer.from("fake-image-content"), {
+      .attach("image", pngFixture, {
         filename: "avatar.png",
         contentType: "image/png",
       });
@@ -300,7 +350,7 @@ describe("PATCH /api/users/profile/image", () => {
     const res = await request(app)
       .patch("/api/users/profile/image")
       .set("Authorization", `Bearer ${token}`)
-      .attach("image", Buffer.from("fake-image-content"), {
+      .attach("image", pngFixture, {
         filename: "avatar.png",
         contentType: "image/png",
       });
@@ -345,7 +395,7 @@ describe("PATCH /api/users/profile/image", () => {
     const res = await request(app)
       .patch("/api/users/profile/image")
       .set("Authorization", `Bearer ${token}`)
-      .attach("image", Buffer.from("fake-image-content"), {
+      .attach("image", pngFixture, {
         filename: "avatar.png",
         contentType: "image/png",
       });

@@ -29,7 +29,7 @@ export const getUserProfile = async (userId: string) => {
   return user;
 };
 
-export const upsertArtistProfile = async (userId: string, input: BecomeArtistInput) => {
+export const saveArtistProfile = async (userId: string, input: BecomeArtistInput) => {
   const supabase = getSupabase();
   const normalizedArtistName = input.artistName.trim();
 
@@ -51,12 +51,21 @@ export const upsertArtistProfile = async (userId: string, input: BecomeArtistInp
     throw conflictError;
   }
 
-  // Fetch current artist_since so we never overwrite it on profile updates
-  const { data: currentUser } = await supabase
+  const { data: currentUser, error: currentUserError } = await supabase
     .from("users")
-    .select("artist_since")
+    .select("role, artist_since")
     .eq("id", userId)
     .single();
+
+  if (currentUserError || !currentUser) {
+    throw new Error(currentUserError?.message ?? "تعذر التحقق من المستخدم الحالي");
+  }
+
+  if (currentUser.role !== "user" && currentUser.role !== "artist") {
+    const roleError = new Error("لا يمكن تعديل هذا النوع من الحسابات عبر هذا المسار");
+    (roleError as any).statusCode = 403;
+    throw roleError;
+  }
 
   const artistSince = currentUser?.artist_since ?? new Date().toISOString();
 
