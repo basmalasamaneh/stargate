@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS users (
   role          VARCHAR(20)  NOT NULL DEFAULT 'user'
                   CHECK (role IN ('user', 'artist')),
   artist_name   VARCHAR(255),
+  artist_since  TIMESTAMPTZ,
+  profile_image TEXT,
   bio           TEXT,
   location      VARCHAR(255),
   phone         VARCHAR(50),

@@ -1,4 +1,5 @@
 import { getSupabase } from "../config/supabase";
+import { removeProfileImageObject, uploadProfileImageFile } from "./profile-image-storage.service";
 import type { BecomeArtistInput } from "../types/auth.types";
 
 const isUniqueArtistNameViolation = (error: { code?: string; message?: string } | null) => {
@@ -17,7 +18,7 @@ export const getUserProfile = async (userId: string) => {
 
   const { data: user, error } = await supabase
     .from("users")
-    .select("id, email, role, first_name, last_name, artist_name, bio, location, phone, social_media")
+    .select("id, email, role, first_name, last_name, artist_name, bio, location, phone, social_media, artist_since, profile_image")
     .eq("id", userId)
     .single();
 
@@ -28,7 +29,7 @@ export const getUserProfile = async (userId: string) => {
   return user;
 };
 
-export const upsertArtistProfile = async (userId: string, input: BecomeArtistInput) => {
+export const saveArtistProfile = async (userId: string, input: BecomeArtistInput) => {
   const supabase = getSupabase();
   const normalizedArtistName = input.artistName.trim();
 
@@ -50,6 +51,24 @@ export const upsertArtistProfile = async (userId: string, input: BecomeArtistInp
     throw conflictError;
   }
 
+  const { data: currentUser, error: currentUserError } = await supabase
+    .from("users")
+    .select("role, artist_since")
+    .eq("id", userId)
+    .single();
+
+  if (currentUserError || !currentUser) {
+    throw new Error(currentUserError?.message ?? "تعذر التحقق من المستخدم الحالي");
+  }
+
+  if (currentUser.role !== "user" && currentUser.role !== "artist") {
+    const roleError = new Error("لا يمكن تعديل هذا النوع من الحسابات عبر هذا المسار");
+    (roleError as any).statusCode = 403;
+    throw roleError;
+  }
+
+  const artistSince = currentUser?.artist_since ?? new Date().toISOString();
+
   const { data: user, error } = await supabase
     .from("users")
     .update({
@@ -59,9 +78,10 @@ export const upsertArtistProfile = async (userId: string, input: BecomeArtistInp
       location: input.location,
       phone: input.phone,
       social_media: input.socialMedia ? JSON.stringify(input.socialMedia) : null,
+      artist_since: artistSince,
     })
     .eq("id", userId)
-    .select("id, email, role, first_name, last_name, artist_name, bio, location, phone, social_media")
+    .select("id, email, role, first_name, last_name, artist_name, bio, location, phone, social_media, artist_since, profile_image")
     .single();
 
   if (error) {
@@ -76,8 +96,63 @@ export const upsertArtistProfile = async (userId: string, input: BecomeArtistInp
   return user;
 };
 
+export const updateArtistProfileImage = async (userId: string, file: Express.Multer.File) => {
+  const supabase = getSupabase();
+
+  const { data: currentUser, error: currentUserError } = await supabase
+    .from("users")
+    .select("id, role, profile_image")
+    .eq("id", userId)
+    .single();
+
+  if (currentUserError || !currentUser) {
+    throw new Error(currentUserError?.message ?? "تعذر التحقق من المستخدم");
+  }
+
+  if (currentUser.role !== "artist") {
+    const roleError = new Error("هذا الإجراء متاح للفنانين فقط");
+    (roleError as any).statusCode = 403;
+    throw roleError;
+  }
+
+  const previousImagePath = currentUser.profile_image as string | null;
+  let uploadedStoragePath = "";
+
+  try {
+    uploadedStoragePath = await uploadProfileImageFile(file, userId);
+
+    const { data: updatedUser, error: updateError } = await supabase
+      .from("users")
+      .update({ profile_image: uploadedStoragePath })
+      .eq("id", userId)
+      .select("id, email, role, first_name, last_name, artist_name, bio, location, phone, social_media, artist_since, profile_image")
+      .single();
+
+    if (updateError || !updatedUser) {
+      throw new Error(updateError?.message ?? "تعذر تحديث الصورة الشخصية");
+    }
+
+    if (previousImagePath && previousImagePath !== uploadedStoragePath) {
+      await removeProfileImageObject(previousImagePath).catch(() => undefined);
+    }
+
+    return updatedUser;
+  } catch (error) {
+    if (uploadedStoragePath) {
+      await removeProfileImageObject(uploadedStoragePath).catch(() => undefined);
+    }
+    throw error;
+  }
+};
+
 export const deleteUserAccount = async (userId: string) => {
   const supabase = getSupabase();
+
+  const { data: currentUser } = await supabase
+    .from("users")
+    .select("profile_image")
+    .eq("id", userId)
+    .single();
 
   const { error } = await supabase
     .from("users")
@@ -86,6 +161,10 @@ export const deleteUserAccount = async (userId: string) => {
 
   if (error) {
     throw new Error(error.message ?? "تعذر حذف الحساب");
+  }
+
+  if (currentUser?.profile_image) {
+    await removeProfileImageObject(currentUser.profile_image).catch(() => undefined);
   }
 };
 

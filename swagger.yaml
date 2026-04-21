@@ -12,6 +12,7 @@ tags:
   - name: Auth
   - name: Users
   - name: Artworks
+  - name: Artists
 
 paths:
   /health:
@@ -97,7 +98,8 @@ paths:
 
     patch:
       tags: [Users]
-      summary: Update or become artist
+      summary: Update artist profile or become artist
+      description: Requires an authenticated user. If the current user is not yet an artist, this request upgrades the account to artist and stores the artist profile. If the user is already an artist, it updates the existing artist profile.
       security:
         - bearerAuth: []
       requestBody:
@@ -131,6 +133,45 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         "409":
           $ref: '#/components/responses/ConflictError'
+
+  /users/profile/image:
+    patch:
+      tags: [Users]
+      summary: Upload or replace artist profile image
+      description: Requires authenticated artist user. Uploads one image file and stores it in Supabase Storage.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProfileImageUploadFormData'
+      responses:
+        "200":
+          description: Profile image updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: تم تحديث الصورة الشخصية بنجاح
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/UserResponse'
+        "400":
+          $ref: '#/components/responses/ValidationError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "403":
+          $ref: '#/components/responses/ForbiddenError'
 
   /users/account:
     delete:
@@ -342,6 +383,100 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         "409":
           $ref: '#/components/responses/ConflictError'
+
+  /artists:
+    get:
+      tags: [Artists]
+      summary: List all artists
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Artists fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ArtistSummary'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /artists/{id}:
+    get:
+      tags: [Artists]
+      summary: Get artist profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Artist profile fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    $ref: '#/components/schemas/ArtistProfile'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+
+  /artists/{id}/artworks:
+    get:
+      tags: [Artists]
+      summary: Get artworks of a specific artist
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/CategoryQuery'
+      responses:
+        "200":
+          description: Artist artworks fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: object
+                    properties:
+                      artworks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ArtworkResponse'
+                      totalCount:
+                        type: integer
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
 
 components:
   securitySchemes:
@@ -557,6 +692,14 @@ components:
         artistName:
           type: string
           nullable: true
+        artistSince:
+          type: string
+          format: date-time
+          nullable: true
+        profileImage:
+          type: string
+          format: uri
+          nullable: true
         bio:
           type: string
           nullable: true
@@ -598,6 +741,10 @@ components:
           nullable: true
         last_name:
           type: string
+          nullable: true
+        profile_image:
+          type: string
+          format: uri
           nullable: true
         location:
           type: string
@@ -686,7 +833,7 @@ components:
           example: 0
         images:
           type: array
-          maxItems: 5
+          maxItems: 3
           items:
             type: string
             format: binary
@@ -730,7 +877,68 @@ components:
             type: string
         images:
           type: array
-          maxItems: 5
+          maxItems: 3
           items:
             type: string
             format: binary
+
+    ProfileImageUploadFormData:
+      type: object
+      required: [image]
+      properties:
+        image:
+          type: string
+          format: binary
+
+    ArtistSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        last_name:
+          type: string
+        artist_name:
+          type: string
+          nullable: true
+        artist_since:
+          type: string
+          format: date-time
+          nullable: true
+        profile_image:
+          type: string
+          format: uri
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        role:
+          type: string
+          example: artist
+
+    ArtistProfile:
+      allOf:
+        - $ref: '#/components/schemas/ArtistSummary'
+        - type: object
+          properties:
+            phone:
+              type: string
+              nullable: true
+            social_media:
+              type: array
+              items:
+                $ref: '#/components/schemas/SocialMediaItem'
+            stats:
+              type: object
+              properties:
+                total_artworks:
+                  type: integer
+                  example: 12
+                available_artworks:
+                  type: integer
+                  example: 8

@@ -32,6 +32,13 @@ const mockGetSupabase = getSupabase as jest.MockedFunction<typeof getSupabase>;
 
 const testJwtSecret = process.env["JWT_SECRET"] ?? "dev-secret";
 
+const pngFixture = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47,
+  0x0d, 0x0a, 0x1a, 0x0a,
+  0x00, 0x00, 0x00, 0x0d,
+  0x49, 0x48, 0x44, 0x52,
+]);
+
 const buildToken = (userId: string) =>
   jwt.sign(
     {
@@ -125,7 +132,7 @@ describe("POST /api/artworks", () => {
       .field("price", "250")
       .field("quantity", "1")
       .field("mainImageIndex", "0")
-      .attach("images", Buffer.from("fake-png"), {
+      .attach("images", pngFixture, {
         filename: "sunset.png",
         contentType: "image/png",
       });
@@ -155,12 +162,13 @@ describe("GET /api/artworks", () => {
     expect(mockGetArtworks).toHaveBeenCalledWith({ page: 1, limit: 12, category: "لوحات فنية", artistId: "artist-1" }, false);
   });
 
-  it("should pass showContactInfo=true when authorization header exists", async () => {
+  it("should pass showContactInfo=true when authorization header contains a valid token", async () => {
+    const token = buildToken("artist-1");
     mockGetArtworks.mockResolvedValueOnce([] as any);
 
     const res = await request(app)
       .get("/api/artworks")
-      .set("Authorization", "Bearer token-any-value");
+      .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(mockGetArtworks).toHaveBeenCalledWith({ page: 1, limit: 12 }, true);
@@ -244,7 +252,7 @@ describe("PATCH /api/artworks/:id", () => {
       .field("existingImages", "old-1.jpg")
       .field("imageOrder", "existing:old-1.jpg")
       .field("imageOrder", "new:0")
-      .attach("images", Buffer.from("new-png"), {
+      .attach("images", pngFixture, {
         filename: "new-image.png",
         contentType: "image/png",
       });

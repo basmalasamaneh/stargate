@@ -46,7 +46,7 @@ export const loginUser = async (input: LoginInput) => {
 
   const { data: user, error } = await supabase
     .from("users")
-    .select("id, email, role, first_name, last_name, password, artist_name, bio, location, phone, social_media")
+    .select("id, email, role, first_name, last_name, password, artist_name, bio, location, phone, social_media, artist_since, profile_image")
     .eq("email", email)
     .maybeSingle();
 
