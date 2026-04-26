@@ -60,29 +60,31 @@ export const createOrderFromCart = async (userId: string, shippingDetails: {
     }
   }
 
-  // 3. Create Order Group (Parent)
+  // 3. Create Parent Order (no artist_id, no parent_order_id)
   const grandTotal = items.reduce((sum: number, item: any) => sum + (item.artwork.price * item.quantity), 0) + (shippingDetails.shippingFee || 0);
   
-  const { data: orderGroup, error: groupError } = await supabase
-    .from("order_groups")
+  const { data: parentOrder, error: parentError } = await supabase
+    .from("orders")
     .insert({
       user_id: userId,
+      artist_id: null,
+      parent_order_id: null,
       total_price: grandTotal,
-      status: 'pending',
+      shipping_fee: shippingDetails.shippingFee || 0,
       shipping_address: shippingDetails.address,
       shipping_city: shippingDetails.city,
       shipping_phone: shippingDetails.phone,
       shipping_name: shippingDetails.name,
-      shipping_fee: shippingDetails.shippingFee || 0
+      status: 'pending'
     })
     .select()
     .single();
 
-  if (groupError) throw new Error(groupError.message);
+  if (parentError) throw new Error(parentError.message);
 
   const createdOrders: any[] = [];
 
-  // 4. Create an order for each artist (Children)
+  // 4. Create a child order for each artist
   for (const artistId in ordersByArtist) {
     const artistItems = ordersByArtist[artistId]!;
     const itemsPrice = artistItems.reduce((sum: number, item: any) => sum + (item.artwork.price * item.quantity), 0);
@@ -92,9 +94,9 @@ export const createOrderFromCart = async (userId: string, shippingDetails: {
       .insert({
         user_id: userId,
         artist_id: artistId,
-        group_id: orderGroup.id, // Link to Parent
-        total_price: itemsPrice, // Child order price only includes items
-        shipping_fee: 0, // Shipping fee is handled by the parent group
+        parent_order_id: parentOrder.id, // Link to Parent
+        total_price: itemsPrice,
+        shipping_fee: 0, // Shipping fee is on the parent
         shipping_address: shippingDetails.address,
         shipping_city: shippingDetails.city,
         shipping_phone: shippingDetails.phone,
@@ -140,7 +142,7 @@ export const createOrderFromCart = async (userId: string, shippingDetails: {
   // 5. Clear cart
   await clearCart(userId);
 
-  return { orderGroup, orders: createdOrders };
+  return { parentOrder, orders: createdOrders };
 };
 
 export const createOrder = async (orderData: {
@@ -173,12 +175,13 @@ export const createOrder = async (orderData: {
   const itemsPrice = orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalPrice = itemsPrice + (orderData.shipping_details.shipping_fee || 0);
 
-  // 1. Create order
-  const { data: order, error: orderError } = await supabase
+  // 1. Create Parent Order
+  const { data: parentOrder, error: parentError } = await supabase
     .from("orders")
     .insert({
       user_id: orderData.userId,
-      artist_id: orderData.artistId,
+      artist_id: null,
+      parent_order_id: null,
       total_price: totalPrice,
       shipping_fee: orderData.shipping_details.shipping_fee || 0,
       shipping_address: orderData.shipping_details.address,
@@ -190,9 +193,29 @@ export const createOrder = async (orderData: {
     .select()
     .single();
 
+  if (parentError) throw new Error(parentError.message);
+
+  // 2. Create Child Order for the artist
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .insert({
+      user_id: orderData.userId,
+      artist_id: orderData.artistId,
+      parent_order_id: parentOrder.id,
+      total_price: itemsPrice,
+      shipping_fee: 0,
+      shipping_address: orderData.shipping_details.address,
+      shipping_city: orderData.shipping_details.city,
+      shipping_phone: orderData.shipping_details.phone,
+      shipping_name: orderData.shipping_details.name,
+      status: 'pending'
+    })
+    .select()
+    .single();
+
   if (orderError) throw new Error(orderError.message);
 
-  // 2. Create order items
+  // 3. Create order items
   const orderItemsData = orderData.items.map(item => ({
     order_id: order.id,
     artwork_id: item.artwork_id,
@@ -242,6 +265,7 @@ export const getArtistOrders = async (artistId: string) => {
       )
     `)
     .eq("artist_id", artistId)
+    .not("parent_order_id", "is", null) // Only child orders (exclude parent rows)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -265,12 +289,12 @@ export const getArtistOrders = async (artistId: string) => {
 export const getUserOrders = async (userId: string) => {
   const supabase = getSupabase();
   
-  // Fetch Order Groups with their child orders
+  // Fetch parent orders with their child orders (self-join via parent_order_id)
   const { data, error } = await supabase
-    .from("order_groups")
+    .from("orders")
     .select(`
       *,
-      orders (
+      children:orders!parent_order_id (
         *,
         artist:users!orders_artist_id_fkey (id, artist_name, first_name, last_name, profile_image),
         items:order_items (
@@ -286,14 +310,41 @@ export const getUserOrders = async (userId: string) => {
       )
     `)
     .eq("user_id", userId)
+    .is("parent_order_id", null) // Only parent orders
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(error.message);
 
+  // Calculate dynamic parent status based on child orders
+  const calculateParentStatus = (children: any[]) => {
+    if (!children || children.length === 0) return 'pending';
+    
+    const allCancelledOrRejected = children.every(o => o.status === 'cancelled' || o.status === 'rejected');
+    if (allCancelledOrRejected) return 'cancelled';
+  
+    const validOrders = children.filter(o => o.status !== 'cancelled' && o.status !== 'rejected');
+    if (validOrders.length === 0) return 'cancelled';
+  
+    const allDelivered = validOrders.every(o => o.status === 'delivered');
+    if (allDelivered) return 'completed';
+  
+    const allShippedOrDelivered = validOrders.every(o => o.status === 'shipped' || o.status === 'delivered');
+    if (allShippedOrDelivered) return 'shipped';
+  
+    const anyShippedOrDelivered = validOrders.some(o => o.status === 'shipped' || o.status === 'delivered');
+    if (anyShippedOrDelivered) return 'partially_shipped';
+  
+    const anyProcessing = validOrders.some(o => o.status === 'approved' || o.status === 'preparing');
+    if (anyProcessing) return 'processing';
+  
+    return 'pending';
+  };
+
   // Transform data for frontend
   return (data || []).map((group: any) => ({
     ...group,
-    orders: (group.orders || []).map((order: any) => ({
+    parent_status: calculateParentStatus(group.children),
+    children: (group.children || []).map((order: any) => ({
       ...order,
       artist: order.artist ? {
         ...order.artist,
@@ -365,7 +416,6 @@ export const updateOrderStatus = async (orderId: string, userId: string, role: s
   if (updateError) throw new Error(updateError.message);
 
   // 5. Special logic for rejection or cancellation: Move items back to cart and restore inventory
-  // Only restore if it wasn't already rejected or cancelled
   const restorationStatuses: OrderStatus[] = ['rejected', 'cancelled'];
   if (restorationStatuses.includes(newStatus) && !restorationStatuses.includes(order.status)) {
     try {
@@ -375,7 +425,6 @@ export const updateOrderStatus = async (orderId: string, userId: string, role: s
         .eq("order_id", orderId);
       
       if (items && items.length > 0) {
-        // Dynamic import to avoid circular dependency
         const cartService = require("./cart.service");
         const cartData = await cartService.getCartByUserId(order.user_id);
         const cartId = cartData.cartId;

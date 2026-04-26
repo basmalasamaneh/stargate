@@ -1,36 +1,22 @@
 export type OrderStatus = 'pending' | 'approved' | 'rejected' | 'preparing' | 'shipped' | 'delivered' | 'cancelled';
 
-export interface OrderGroup {
-  id: string;
-  userId: string;
-  totalPrice: number;
-  status: OrderStatus;
-  shippingAddress: string;
-  shippingCity: string;
-  shippingPhone: string;
-  shippingName: string;
-  shippingFee: number;
-  createdAt: string;
-  updatedAt: string;
-  orders?: Order[];
-}
-
 export interface Order {
   id: string;
   userId: string;
-  artistId: string;
-  groupId?: string;
+  artistId?: string | null;       // null for parent orders
+  parentOrderId?: string | null;  // null for parent orders, set for children
   totalPrice: number;
   shippingAddress: string;
   shippingCity: string;
   shippingPhone: string;
   shippingName: string;
-  shippingFee: number;
+  shippingFee: number;            // only meaningful on parent orders
   status: OrderStatus;
   createdAt: string;
   updatedAt: string;
   items?: OrderItem[];
   artist?: any;
+  children?: Order[];             // populated on parent orders
 }
 
 export interface OrderItem {
