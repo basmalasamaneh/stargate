@@ -36,6 +36,18 @@ export const signupUser = async (input: SignupInput) => {
 
   if (dbError) throw new Error(dbError.message);
 
+  // Create a cart for the new user
+  const { error: cartError } = await supabase
+    .from("carts")
+    .insert({ user_id: user.id });
+
+  if (cartError) {
+    // If cart creation fails, we might want to delete the user or handle it
+    // But since it's a small app, we'll just log or throw. 
+    // Ideally use a transaction or RPC for atomicity.
+    throw new Error("حدث خطأ أثناء إنشاء السلة: " + cartError.message);
+  }
+
   const token = createJwtToken(user as any);
   return { token, user };
 };

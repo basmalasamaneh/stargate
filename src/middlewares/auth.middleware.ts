@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
   userId?: string;
+  role?: string;
 }
 
 export const requireAuth = (
@@ -30,8 +31,9 @@ export const requireAuth = (
   }
 
   try {
-    const payload = jwt.verify(token, jwtSecret ?? "dev-secret") as { userId: string };
+    const payload = jwt.verify(token, jwtSecret ?? "dev-secret") as { userId: string, role: string };
     req.userId = payload.userId;
+    req.role = payload.role;
     next();
   } catch {
     res.status(401).json({ status: "error", message: "رمز التحقق غير صالح أو منتهي الصلاحية" });

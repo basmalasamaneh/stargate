@@ -110,7 +110,7 @@ describe("GET /api/users/profile", () => {
     } as any);
 
     const res = await request(app)
-      .get("/api/users/profile")
+      .get("/api/v1/users/profile")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -130,7 +130,7 @@ describe("GET /api/users/profile", () => {
   });
 
   it("should return 401 when token is missing", async () => {
-    const res = await request(app).get("/api/users/profile");
+    const res = await request(app).get("/api/v1/users/profile");
 
     expect(res.status).toBe(401);
     expect(res.body.status).toBe("error");
@@ -139,7 +139,7 @@ describe("GET /api/users/profile", () => {
 
   it("should return 401 when token is invalid", async () => {
     const res = await request(app)
-      .get("/api/users/profile")
+      .get("/api/v1/users/profile")
       .set("Authorization", "Bearer invalid-token");
 
     expect(res.status).toBe(401);
@@ -152,7 +152,7 @@ describe("GET /api/users/profile", () => {
     mockGetUserProfile.mockRejectedValueOnce(new Error("DB profile failed"));
 
     const res = await request(app)
-      .get("/api/users/profile")
+      .get("/api/v1/users/profile")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(500);
@@ -184,7 +184,7 @@ describe("PATCH /api/users/profile", () => {
     } as any);
 
     const res = await request(app)
-      .patch("/api/users/profile")
+      .patch("/api/v1/users/profile")
       .set("Authorization", `Bearer ${token}`)
       .send(validBecomeArtistBody);
 
@@ -219,7 +219,7 @@ describe("PATCH /api/users/profile", () => {
     } as any);
 
     const res = await request(app)
-      .patch("/api/users/profile")
+      .patch("/api/v1/users/profile")
       .set("Authorization", `Bearer ${token}`)
       .send(validBecomeArtistBody);
 
@@ -230,7 +230,7 @@ describe("PATCH /api/users/profile", () => {
 
   it("should return 401 when token is missing", async () => {
     const res = await request(app)
-      .patch("/api/users/profile")
+      .patch("/api/v1/users/profile")
       .send(validBecomeArtistBody);
 
     expect(res.status).toBe(401);
@@ -241,7 +241,7 @@ describe("PATCH /api/users/profile", () => {
   it("should return 400 when payload is invalid", async () => {
     const token = buildToken("user-123");
     const res = await request(app)
-      .patch("/api/users/profile")
+      .patch("/api/v1/users/profile")
       .set("Authorization", `Bearer ${token}`)
       .send({
         ...validBecomeArtistBody,
@@ -262,7 +262,7 @@ describe("PATCH /api/users/profile", () => {
     mockSaveArtistProfile.mockRejectedValueOnce(new Error("DB update profile failed"));
 
     const res = await request(app)
-      .patch("/api/users/profile")
+      .patch("/api/v1/users/profile")
       .set("Authorization", `Bearer ${token}`)
       .send(validBecomeArtistBody);
 
@@ -282,7 +282,7 @@ describe("PATCH /api/users/profile", () => {
     mockSaveArtistProfile.mockRejectedValueOnce(conflictError);
 
     const res = await request(app)
-      .patch("/api/users/profile")
+      .patch("/api/v1/users/profile")
       .set("Authorization", `Bearer ${token}`)
       .send(validBecomeArtistBody);
 
@@ -311,7 +311,7 @@ describe("PATCH /api/users/profile/image", () => {
     } as any);
 
     const res = await request(app)
-      .patch("/api/users/profile/image")
+      .patch("/api/v1/users/profile/image")
       .set("Authorization", `Bearer ${token}`)
       .attach("image", pngFixture, {
         filename: "avatar.png",
@@ -332,7 +332,7 @@ describe("PATCH /api/users/profile/image", () => {
 
   it("should return 401 when token is missing", async () => {
     const res = await request(app)
-      .patch("/api/users/profile/image")
+      .patch("/api/v1/users/profile/image")
       .attach("image", Buffer.from("fake-image-content"), {
         filename: "avatar.png",
         contentType: "image/png",
@@ -348,7 +348,7 @@ describe("PATCH /api/users/profile/image", () => {
     const token = buildToken("user-123");
 
     const res = await request(app)
-      .patch("/api/users/profile/image")
+      .patch("/api/v1/users/profile/image")
       .set("Authorization", `Bearer ${token}`)
       .attach("image", pngFixture, {
         filename: "avatar.png",
@@ -364,7 +364,7 @@ describe("PATCH /api/users/profile/image", () => {
     const token = buildToken("user-123");
 
     const res = await request(app)
-      .patch("/api/users/profile/image")
+      .patch("/api/v1/users/profile/image")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(400);
@@ -376,7 +376,7 @@ describe("PATCH /api/users/profile/image", () => {
     const token = buildToken("user-123");
 
     const res = await request(app)
-      .patch("/api/users/profile/image")
+      .patch("/api/v1/users/profile/image")
       .set("Authorization", `Bearer ${token}`)
       .attach("image", Buffer.from("not-image"), {
         filename: "notes.txt",
@@ -393,7 +393,7 @@ describe("PATCH /api/users/profile/image", () => {
     mockUpdateArtistProfileImage.mockRejectedValueOnce(new Error("storage upload failed"));
 
     const res = await request(app)
-      .patch("/api/users/profile/image")
+      .patch("/api/v1/users/profile/image")
       .set("Authorization", `Bearer ${token}`)
       .attach("image", pngFixture, {
         filename: "avatar.png",
@@ -412,7 +412,7 @@ describe("DELETE /api/users/account", () => {
     mockDeleteUserAccount.mockResolvedValueOnce(undefined);
 
     const res = await request(app)
-      .delete("/api/users/account")
+      .delete("/api/v1/users/account")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -422,7 +422,7 @@ describe("DELETE /api/users/account", () => {
   });
 
   it("should return 401 when token is missing", async () => {
-    const res = await request(app).delete("/api/users/account");
+    const res = await request(app).delete("/api/v1/users/account");
 
     expect(res.status).toBe(401);
     expect(res.body.status).toBe("error");
@@ -431,7 +431,7 @@ describe("DELETE /api/users/account", () => {
 
   it("should return 401 when token is invalid", async () => {
     const res = await request(app)
-      .delete("/api/users/account")
+      .delete("/api/v1/users/account")
       .set("Authorization", "Bearer invalid-token");
 
     expect(res.status).toBe(401);
@@ -444,7 +444,7 @@ describe("DELETE /api/users/account", () => {
     mockDeleteUserAccount.mockRejectedValueOnce(new Error("DB delete failed"));
 
     const res = await request(app)
-      .delete("/api/users/account")
+      .delete("/api/v1/users/account")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(500);

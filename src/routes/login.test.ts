@@ -23,7 +23,7 @@ describe("POST /api/auth/login", () => {
       user: { id: "uuid-1", email: "user@example.com", role: "user" } as any,
     });
 
-    const res = await request(app).post("/api/auth/login").send(validBody);
+    const res = await request(app).post("/api/v1/auth/login").send(validBody);
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("success");
@@ -39,7 +39,7 @@ describe("POST /api/auth/login", () => {
     });
 
     const res = await request(app)
-      .post("/api/auth/login")
+      .post("/api/v1/auth/login")
       .send({ ...validBody, email: "USER@EXAMPLE.COM" });
 
     expect(res.status).toBe(200);
@@ -50,7 +50,7 @@ describe("POST /api/auth/login", () => {
 
   it("should return 400 when email is missing", async () => {
     const res = await request(app)
-      .post("/api/auth/login")
+      .post("/api/v1/auth/login")
       .send({ password: "Secret123" });
 
     expect(res.status).toBe(400);
@@ -63,7 +63,7 @@ describe("POST /api/auth/login", () => {
 
   it("should return 400 when email format is invalid", async () => {
     const res = await request(app)
-      .post("/api/auth/login")
+      .post("/api/v1/auth/login")
       .send({ ...validBody, email: "notanemail" });
 
     expect(res.status).toBe(400);
@@ -76,7 +76,7 @@ describe("POST /api/auth/login", () => {
 
   it("should return 400 when password is missing", async () => {
     const res = await request(app)
-      .post("/api/auth/login")
+      .post("/api/v1/auth/login")
       .send({ email: "user@example.com" });
 
     expect(res.status).toBe(400);
@@ -89,7 +89,7 @@ describe("POST /api/auth/login", () => {
 
   it("should return 400 when password is shorter than 8 characters", async () => {
     const res = await request(app)
-      .post("/api/auth/login")
+      .post("/api/v1/auth/login")
       .send({ ...validBody, password: "Ab1" });
 
     expect(res.status).toBe(400);
@@ -105,7 +105,7 @@ describe("POST /api/auth/login", () => {
     error.statusCode = 401;
     mockLoginUser.mockRejectedValueOnce(error);
 
-    const res = await request(app).post("/api/auth/login").send(validBody);
+    const res = await request(app).post("/api/v1/auth/login").send(validBody);
 
     expect(res.status).toBe(401);
     expect(res.body.status).toBe("error");
@@ -118,7 +118,7 @@ describe("POST /api/auth/login", () => {
       user: { id: "uuid-1", email: "user@example.com", role: "user" } as any,
     });
 
-    const res = await request(app).post("/api/auth/login").send(validBody);
+    const res = await request(app).post("/api/v1/auth/login").send(validBody);
 
     expect(res.body.data.user.password).toBeUndefined();
   });
@@ -126,7 +126,7 @@ describe("POST /api/auth/login", () => {
   it("should return 500 on unexpected server error", async () => {
     mockLoginUser.mockRejectedValueOnce(new Error("DB connection failed"));
 
-    const res = await request(app).post("/api/auth/login").send(validBody);
+    const res = await request(app).post("/api/v1/auth/login").send(validBody);
 
     expect(res.status).toBe(500);
     expect(res.body.status).toBe("error");

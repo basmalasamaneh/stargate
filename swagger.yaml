@@ -5,7 +5,7 @@ info:
   description: API documentation for authentication, users, and artworks modules.
 
 servers:
-  - url: http://localhost:3001/api
+  - url: http://localhost:5000/api/v1
 
 tags:
   - name: Health
@@ -13,6 +13,8 @@ tags:
   - name: Users
   - name: Artworks
   - name: Artists
+  - name: Cart
+  - name: Orders
 
 paths:
   /health:
@@ -478,6 +480,272 @@ paths:
         "404":
           $ref: '#/components/responses/NotFoundError'
 
+  /cart/{cartId}:
+    get:
+      tags: [Cart]
+      summary: Get user cart by cartId
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cartId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Cart retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+  /cart/user/{userId}:
+    get:
+      tags: [Cart]
+      summary: Get user cart by userId
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Cart retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+  /cart/{cartId}/items:
+    post:
+      tags: [Cart]
+      summary: Add item to cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cartId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddToCartInput'
+      responses:
+        "200":
+          description: Item added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+  /cart/{cartId}/items/{itemId}:
+    delete:
+      tags: [Cart]
+      summary: Remove item from cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cartId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Item removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+    patch:
+      tags: [Cart]
+      summary: Update cart item quantity
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cartId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        "200":
+          description: Quantity updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+  /orders/{userId}/checkout:
+    post:
+      tags: [Orders]
+      summary: Checkout cart and create orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutInput'
+      responses:
+        "201":
+          description: Orders created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderResponse'
+
+  /orders/{userId}:
+    get:
+      tags: [Orders]
+      summary: Get orders for a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Orders retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: success }
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderResponse'
+
+    post:
+      tags: [Orders]
+      summary: Create a manual order (bypass cart)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                artistId:
+                  type: string
+                  format: uuid
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      artwork_id: { type: string, format: uuid }
+                      quantity: { type: integer, minimum: 1 }
+                      price: { type: number }
+                shipping_details:
+                  type: object
+                  properties:
+                    address: { type: string }
+                    city: { type: string }
+                    phone: { type: string }
+                    shipping_fee: { type: number }
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+
+  /orders/{orderId}/status:
+    patch:
+      tags: [Orders]
+      summary: Update order status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [pending, approved, rejected, preparing, shipped, delivered]
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -942,3 +1210,60 @@ components:
                 available_artworks:
                   type: integer
                   example: 8
+
+    CartResponse:
+      type: object
+      properties:
+        status: { type: string, example: success }
+        data:
+          type: object
+          properties:
+            cartId: { type: string, format: uuid }
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/CartItem'
+
+    CartItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        quantity: { type: integer }
+        artwork:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            title: { type: string }
+            price: { type: number }
+
+    AddToCartInput:
+      type: object
+      required: [artworkId]
+      properties:
+        artworkId: { type: string, format: uuid }
+        quantity: { type: integer, default: 1 }
+
+    OrderResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        artist_id: { type: string, format: uuid }
+        total_price: { type: number }
+        shipping_fee: { type: number }
+        shipping_address: { type: string }
+        shipping_city: { type: string }
+        shipping_phone: { type: string }
+        status:
+          type: string
+          enum: [pending, approved, rejected, preparing, shipped, delivered]
+        created_at: { type: string, format: date-time }
+
+    CheckoutInput:
+      type: object
+      required: [address, city, phone, shippingFee]
+      properties:
+        address: { type: string }
+        city: { type: string }
+        phone: { type: string }
+        shippingFee: { type: number }

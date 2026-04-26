@@ -77,7 +77,7 @@ beforeEach(() => {
 
 describe("POST /api/artworks", () => {
   it("should return 401 when token is missing", async () => {
-    const res = await request(app).post("/api/artworks");
+    const res = await request(app).post("/api/v1/artworks");
 
     expect(res.status).toBe(401);
     expect(res.body.status).toBe("error");
@@ -89,7 +89,7 @@ describe("POST /api/artworks", () => {
     const token = buildToken("artist-1");
 
     const res = await request(app)
-      .post("/api/artworks")
+      .post("/api/v1/artworks")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(403);
@@ -101,7 +101,7 @@ describe("POST /api/artworks", () => {
     const token = buildToken("artist-1");
 
     const res = await request(app)
-      .post("/api/artworks")
+      .post("/api/v1/artworks")
       .set("Authorization", `Bearer ${token}`)
       .field("title", "لوحة جميلة")
       .field("description", "هذا وصف طويل كفاية لاجتياز التحقق")
@@ -124,7 +124,7 @@ describe("POST /api/artworks", () => {
     } as any);
 
     const res = await request(app)
-      .post("/api/artworks")
+      .post("/api/v1/artworks")
       .set("Authorization", `Bearer ${token}`)
       .field("title", "sunset study")
       .field("description", "this is a long enough description for schema")
@@ -154,7 +154,7 @@ describe("GET /api/artworks", () => {
     mockGetArtworks.mockResolvedValueOnce([] as any);
 
     const res = await request(app)
-      .get("/api/artworks")
+      .get("/api/v1/artworks")
       .query({ category: "لوحات فنية", artist_id: "artist-1" });
 
     expect(res.status).toBe(200);
@@ -167,7 +167,7 @@ describe("GET /api/artworks", () => {
     mockGetArtworks.mockResolvedValueOnce([] as any);
 
     const res = await request(app)
-      .get("/api/artworks")
+      .get("/api/v1/artworks")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -179,7 +179,7 @@ describe("GET /api/artworks/:id", () => {
   it("should return artwork by id", async () => {
     mockGetArtworkById.mockResolvedValueOnce({ id: "art-1" } as any);
 
-    const res = await request(app).get("/api/artworks/art-1");
+    const res = await request(app).get("/api/v1/artworks/art-1");
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("success");
@@ -189,7 +189,7 @@ describe("GET /api/artworks/:id", () => {
   it("should return 404 when artwork not found", async () => {
     mockGetArtworkById.mockResolvedValueOnce(null as any);
 
-    const res = await request(app).get("/api/artworks/missing-id");
+    const res = await request(app).get("/api/v1/artworks/missing-id");
 
     expect(res.status).toBe(404);
     expect(res.body.status).toBe("error");
@@ -199,7 +199,7 @@ describe("GET /api/artworks/:id", () => {
 
 describe("PATCH /api/artworks/:id", () => {
   it("should return 401 when token is missing", async () => {
-    const res = await request(app).patch("/api/artworks/art-1");
+    const res = await request(app).patch("/api/v1/artworks/art-1");
 
     expect(res.status).toBe(401);
     expect(res.body.status).toBe("error");
@@ -211,7 +211,7 @@ describe("PATCH /api/artworks/:id", () => {
     const token = buildToken("artist-1");
 
     const res = await request(app)
-      .patch("/api/artworks/art-1")
+      .patch("/api/v1/artworks/art-1")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(403);
@@ -223,7 +223,7 @@ describe("PATCH /api/artworks/:id", () => {
     const token = buildToken("artist-1");
 
     const res = await request(app)
-      .patch("/api/artworks/art-1")
+      .patch("/api/v1/artworks/art-1")
       .set("Authorization", `Bearer ${token}`)
       .field("price", "-1");
 
@@ -241,7 +241,7 @@ describe("PATCH /api/artworks/:id", () => {
     } as any);
 
     const res = await request(app)
-      .patch("/api/artworks/art-1")
+      .patch("/api/v1/artworks/art-1")
       .set("Authorization", `Bearer ${token}`)
       .field("title", "updated title")
       .field("description", "this is a long enough updated description")
@@ -275,7 +275,7 @@ describe("PATCH /api/artworks/:id", () => {
     mockUpdateArtwork.mockRejectedValueOnce(notFoundError);
 
     const res = await request(app)
-      .patch("/api/artworks/missing-id")
+      .patch("/api/v1/artworks/missing-id")
       .set("Authorization", `Bearer ${token}`)
       .field("title", "updated title");
 
@@ -287,7 +287,7 @@ describe("PATCH /api/artworks/:id", () => {
 
 describe("DELETE /api/artworks/:id", () => {
   it("should return 401 when token is missing", async () => {
-    const res = await request(app).delete("/api/artworks/art-1");
+    const res = await request(app).delete("/api/v1/artworks/art-1");
 
     expect(res.status).toBe(401);
     expect(res.body.status).toBe("error");
@@ -299,7 +299,7 @@ describe("DELETE /api/artworks/:id", () => {
     const token = buildToken("artist-1");
 
     const res = await request(app)
-      .delete("/api/artworks/art-1")
+      .delete("/api/v1/artworks/art-1")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(403);
@@ -315,7 +315,7 @@ describe("DELETE /api/artworks/:id", () => {
     } as any);
 
     const res = await request(app)
-      .delete("/api/artworks/art-1")
+      .delete("/api/v1/artworks/art-1")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -331,7 +331,7 @@ describe("DELETE /api/artworks/:id", () => {
     mockDeleteArtwork.mockRejectedValueOnce(conflictError);
 
     const res = await request(app)
-      .delete("/api/artworks/art-1")
+      .delete("/api/v1/artworks/art-1")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(409);
@@ -342,7 +342,7 @@ describe("DELETE /api/artworks/:id", () => {
 
 describe("GET /api/artworks/my-artworks", () => {
   it("should return 401 when token is missing", async () => {
-    const res = await request(app).get("/api/artworks/my-artworks");
+    const res = await request(app).get("/api/v1/artworks/my-artworks");
 
     expect(res.status).toBe(401);
     expect(res.body.status).toBe("error");
@@ -354,7 +354,7 @@ describe("GET /api/artworks/my-artworks", () => {
     const token = buildToken("artist-1");
 
     const res = await request(app)
-      .get("/api/artworks/my-artworks")
+      .get("/api/v1/artworks/my-artworks")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(403);
@@ -367,7 +367,7 @@ describe("GET /api/artworks/my-artworks", () => {
     mockGetMyArtworks.mockResolvedValueOnce([] as any);
 
     const res = await request(app)
-      .get("/api/artworks/my-artworks")
+      .get("/api/v1/artworks/my-artworks")
       .set("Authorization", `Bearer ${token}`)
       .query({ category: "لوحات فنية" });
 

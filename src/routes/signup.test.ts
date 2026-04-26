@@ -26,7 +26,7 @@ describe("POST /api/auth/signup", () => {
       user: { id: "uuid-1", email: "user@example.com", role: "user" } as any,
     });
 
-    const res = await request(app).post("/api/auth/signup").send(validBody);
+    const res = await request(app).post("/api/v1/auth/signup").send(validBody);
 
     expect(res.status).toBe(201);
     expect(res.body.status).toBe("success");
@@ -42,7 +42,7 @@ describe("POST /api/auth/signup", () => {
     });
 
     const res = await request(app)
-      .post("/api/auth/signup")
+      .post("/api/v1/auth/signup")
       .send({ ...validBody, email: "USER@EXAMPLE.COM" });
 
     expect(res.status).toBe(201);
@@ -55,7 +55,7 @@ describe("POST /api/auth/signup", () => {
   it("should return 400 when firstName is missing", async () => {
     const { firstName, ...body } = validBody;
 
-    const res = await request(app).post("/api/auth/signup").send(body);
+    const res = await request(app).post("/api/v1/auth/signup").send(body);
 
     expect(res.status).toBe(400);
     expect(res.body.status).toBe("error");
@@ -71,7 +71,7 @@ describe("POST /api/auth/signup", () => {
   it("should return 400 when lastName is missing", async () => {
     const { lastName, ...body } = validBody;
 
-    const res = await request(app).post("/api/auth/signup").send(body);
+    const res = await request(app).post("/api/v1/auth/signup").send(body);
 
     expect(res.status).toBe(400);
     expect(res.body.status).toBe("error");
@@ -86,7 +86,7 @@ describe("POST /api/auth/signup", () => {
   // Invalid email format
   it("should return 400 when email is invalid", async () => {
     const res = await request(app)
-      .post("/api/auth/signup")
+      .post("/api/v1/auth/signup")
       .send({ ...validBody, email: "notanemail" });
 
     expect(res.status).toBe(400);
@@ -102,7 +102,7 @@ describe("POST /api/auth/signup", () => {
   // Password too short
   it("should return 400 when password is shorter than 8 characters", async () => {
     const res = await request(app)
-      .post("/api/auth/signup")
+      .post("/api/v1/auth/signup")
       .send({ ...validBody, password: "Ab1", confirmPassword: "Ab1" });
 
     expect(res.status).toBe(400);
@@ -118,7 +118,7 @@ describe("POST /api/auth/signup", () => {
   // Password missing uppercase
   it("should return 400 when password has no uppercase letter", async () => {
     const res = await request(app)
-      .post("/api/auth/signup")
+      .post("/api/v1/auth/signup")
       .send({
         ...validBody,
         password: "secret123",
@@ -138,7 +138,7 @@ describe("POST /api/auth/signup", () => {
   // Password missing lowercase
   it("should return 400 when password has no lowercase letter", async () => {
     const res = await request(app)
-      .post("/api/auth/signup")
+      .post("/api/v1/auth/signup")
       .send({
         ...validBody,
         password: "SECRET123",
@@ -158,7 +158,7 @@ describe("POST /api/auth/signup", () => {
   // Password missing number
   it("should return 400 when password has no number", async () => {
     const res = await request(app)
-      .post("/api/auth/signup")
+      .post("/api/v1/auth/signup")
       .send({
         ...validBody,
         password: "SecretABC",
@@ -178,7 +178,7 @@ describe("POST /api/auth/signup", () => {
   // confirmPassword mismatch
   it("should return 400 when confirmPassword does not match password", async () => {
     const res = await request(app)
-      .post("/api/auth/signup")
+      .post("/api/v1/auth/signup")
       .send({ ...validBody, confirmPassword: "Different999" });
 
     expect(res.status).toBe(400);
@@ -197,7 +197,7 @@ describe("POST /api/auth/signup", () => {
     error.statusCode = 409;
     mockSignupUser.mockRejectedValueOnce(error);
 
-    const res = await request(app).post("/api/auth/signup").send(validBody);
+    const res = await request(app).post("/api/v1/auth/signup").send(validBody);
 
     expect(res.status).toBe(409);
     expect(res.body.status).toBe("error");
@@ -208,7 +208,7 @@ describe("POST /api/auth/signup", () => {
   it("should return 500 on unexpected server error", async () => {
     mockSignupUser.mockRejectedValueOnce(new Error("Unexpected DB failure"));
 
-    const res = await request(app).post("/api/auth/signup").send(validBody);
+    const res = await request(app).post("/api/v1/auth/signup").send(validBody);
 
     expect(res.status).toBe(500);
     expect(res.body.status).toBe("error");
