@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express, { Application, NextFunction, Request, Response } from "express";
 import cors from "cors";
+import morgan from "morgan";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 import path from "path";
@@ -10,7 +11,12 @@ import authRouter from "./routes/auth.routes";
 import usersRouter from "./routes/users.routes";
 import artworkRouter from "./routes/artwork.routes";
 import artistRouter from './routes/artist.routes'
+import cartRouter from "./routes/cart.routes";
+import orderRouter from "./routes/order.routes";
 const app: Application = express();
+
+// Trust proxy for rate limiting behind a reverse proxy (e.g. Next.js proxy)
+app.set("trust proxy", 1);
 
 // Enable CORS for frontend
 app.use(
@@ -20,6 +26,9 @@ app.use(
   })
 );
 
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan("dev"));
+}
 app.use(express.json());
 
 const swaggerPath = path.resolve(__dirname, "../swagger.yaml");
@@ -40,11 +49,13 @@ if (process.env.NODE_ENV !== "production") {
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 }
 
-app.use("/api", healthRouter);
-app.use("/api/auth", authRouter);
-app.use("/api/users", usersRouter);
-app.use('/api/artists', artistRouter);
-app.use("/api/artworks", artworkRouter);
+app.use("/api/v1", healthRouter);
+app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/users", usersRouter);
+app.use('/api/v1/artists', artistRouter);
+app.use("/api/v1/artworks", artworkRouter);
+app.use("/api/v1/cart", cartRouter);
+app.use("/api/v1/orders", orderRouter);
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof multer.MulterError) {

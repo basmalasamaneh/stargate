@@ -40,6 +40,9 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
   },
-  "exclude": ["**/*.test.ts", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "scratch", "**/*.test.ts"]
 }

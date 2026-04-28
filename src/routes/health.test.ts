@@ -4,14 +4,14 @@ import app from "../app";
 
 describe("GET /api/health", () => {
   it("should return 200 with status Ok Healthy", async () => {
-    const res = await request(app).get("/api/health");
+    const res = await request(app).get("/api/v1/health");
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("Ok Healthy");
   });
 
   it("should return a valid ISO timestamp", async () => {
-    const res = await request(app).get("/api/health");
+    const res = await request(app).get("/api/v1/health");
     const { timestamp } = res.body as { timestamp: string };
 
     expect(timestamp).toBeDefined();

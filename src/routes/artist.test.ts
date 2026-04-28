@@ -51,7 +51,7 @@ describe("GET /api/artists", () => {
     ] as any);
 
     const res = await request(app)
-      .get("/api/artists")
+      .get("/api/v1/artists")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -67,7 +67,7 @@ describe("GET /api/artists", () => {
   });
 
   it("should return 401 when token is missing", async () => {
-    const res = await request(app).get("/api/artists");
+    const res = await request(app).get("/api/v1/artists");
 
     expect(res.status).toBe(401);
     expect(res.body.status).toBe("error");
@@ -79,7 +79,7 @@ describe("GET /api/artists", () => {
     mockGetAllArtists.mockRejectedValueOnce(new Error("artists load failed"));
 
     const res = await request(app)
-      .get("/api/artists")
+      .get("/api/v1/artists")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(500);
@@ -106,7 +106,7 @@ describe("GET /api/artists/:id", () => {
     } as any);
 
     const res = await request(app)
-      .get("/api/artists/artist-1")
+      .get("/api/v1/artists/artist-1")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
@@ -128,7 +128,7 @@ describe("GET /api/artists/:id", () => {
     mockGetArtistProfile.mockRejectedValueOnce(notFoundError);
 
     const res = await request(app)
-      .get("/api/artists/missing-id")
+      .get("/api/v1/artists/missing-id")
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(404);
@@ -148,7 +148,7 @@ describe("GET /api/artists/:id/artworks", () => {
     } as any);
 
     const res = await request(app)
-      .get("/api/artists/artist-1/artworks")
+      .get("/api/v1/artists/artist-1/artworks")
       .set("Authorization", `Bearer ${token}`)
       .query({ category: "لوحات فنية", page: "2", limit: "4" });
 
@@ -162,7 +162,7 @@ describe("GET /api/artists/:id/artworks", () => {
   });
 
   it("should return 401 when token is missing", async () => {
-    const res = await request(app).get("/api/artists/artist-1/artworks");
+    const res = await request(app).get("/api/v1/artists/artist-1/artworks");
 
     expect(res.status).toBe(401);
     expect(res.body.status).toBe("error");
