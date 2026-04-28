@@ -123,6 +123,19 @@ describe("POST /api/auth/login", () => {
     expect(res.body.data.user.password).toBeUndefined();
   });
 
+  it("should return 403 when user is not verified", async () => {
+    const error = new Error("يرجى تفعيل حسابك أولاً") as any;
+    error.statusCode = 403;
+    error.notVerified = true;
+    mockLoginUser.mockRejectedValueOnce(error);
+
+    const res = await request(app).post("/api/v1/auth/login").send(validBody);
+
+    expect(res.status).toBe(403);
+    expect(res.body.status).toBe("error");
+    expect(res.body.notVerified).toBe(true);
+  });
+
   it("should return 500 on unexpected server error", async () => {
     mockLoginUser.mockRejectedValueOnce(new Error("DB connection failed"));
 

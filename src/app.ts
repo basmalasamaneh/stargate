@@ -15,6 +15,9 @@ import cartRouter from "./routes/cart.routes";
 import orderRouter from "./routes/order.routes";
 const app: Application = express();
 
+// Trust proxy for rate limiting behind a reverse proxy (e.g. Next.js proxy)
+app.set("trust proxy", 1);
+
 // Enable CORS for frontend
 app.use(
   cors({

@@ -20,9 +20,8 @@ beforeEach(() => {
 });
 // Success 
 describe("POST /api/auth/signup", () => {
-  it("should return 201 with token and user on valid input", async () => {
+  it("should return 201 with user (and NO token) on valid input", async () => {
     mockSignupUser.mockResolvedValueOnce({
-      token: "mock-jwt-token",
       user: { id: "uuid-1", email: "user@example.com", role: "user" } as any,
     });
 
@@ -30,14 +29,13 @@ describe("POST /api/auth/signup", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.status).toBe("success");
-    expect(res.body.data.token).toBeDefined();
+    expect(res.body.data.token).toBeUndefined(); // Token is now only after verification
     expect(res.body.data.user).toBeDefined();
   });
 
   // Email normalization 
   it("should accept uppercase email and normalize it to lowercase", async () => {
     mockSignupUser.mockResolvedValueOnce({
-      token: "mock-jwt-token",
       user: { id: "uuid-1", email: "user@example.com", role: "user" } as any,
     });
 
