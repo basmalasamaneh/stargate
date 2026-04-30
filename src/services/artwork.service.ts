@@ -86,7 +86,7 @@ const sanitizeArtworkContactInfo = <T extends Record<string, any> | null>(artwor
   } as T;
 };
 
-const attachArtworkImageUrls = <T extends Record<string, any> | null>(artwork: T): T => {
+export const attachArtworkImageUrls = <T extends Record<string, any> | null>(artwork: T): T => {
   if (!artwork || !Array.isArray(artwork.artwork_images)) {
     return artwork;
   }
@@ -101,15 +101,21 @@ const attachArtworkImageUrls = <T extends Record<string, any> | null>(artwork: T
       }
     : artwork.users;
 
+  const transformedImages = artwork.artwork_images.map((image: Record<string, any>) => ({
+    ...image,
+    storage_path: image.filename,
+    filename: toArtworkPublicUrl(image.filename),
+    url: toArtworkPublicUrl(image.filename),
+  } as any));
+
+  // Find featured image or use the first one
+  const featuredImage = transformedImages.find(img => img.is_featured) || transformedImages[0];
+
   return {
     ...artwork,
     users: usersWithProfileImage,
-    artwork_images: artwork.artwork_images.map((image: Record<string, any>) => ({
-      ...image,
-      storage_path: image.filename,
-      filename: toArtworkPublicUrl(image.filename),
-      url: toArtworkPublicUrl(image.filename),
-    })),
+    artwork_images: transformedImages,
+    image: featuredImage ? featuredImage.url : null
   } as T;
 };
 
