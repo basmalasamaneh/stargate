@@ -4,8 +4,8 @@ import { requireAuth } from '../middlewares/auth.middleware';
 
 const router = Router();
 
-router.get('/', requireAuth, listArtists);
-router.get('/:id', requireAuth, getArtistById);
-router.get('/:id/artworks', requireAuth, getArtistArtworksById);
+router.get('/', listArtists);
+router.get('/:id', getArtistById);
+router.get('/:id/artworks', getArtistArtworksById);
 
 export default router;

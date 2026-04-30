@@ -4,12 +4,12 @@ import { clearCart } from "./cart.service";
 import { attachArtworkImageUrls } from "./artwork.service";
 import { toProfileImagePublicUrl } from "./profile-image-storage.service";
 
-export const createOrderFromCart = async (userId: string, shippingDetails: { 
-  address: string, 
-  city: string, 
-  phone: string, 
+export const createOrderFromCart = async (userId: string, shippingDetails: {
+  address: string,
+  city: string,
+  phone: string,
   name: string,
-  shippingFee: number 
+  shippingFee: number
 }) => {
   const supabase = getSupabase();
 
@@ -54,7 +54,7 @@ export const createOrderFromCart = async (userId: string, shippingDetails: {
       .select("quantity, title")
       .eq("id", item.artwork_id)
       .single();
-    
+
     if (!artwork || artwork.quantity < item.quantity) {
       throw new Error(`عذراً، الكمية المطلوبة من "${artwork?.title || 'العمل'}" غير متوفرة حالياً`);
     }
@@ -62,7 +62,7 @@ export const createOrderFromCart = async (userId: string, shippingDetails: {
 
   // 3. Create Parent Order (no artist_id, no parent_order_id)
   const grandTotal = items.reduce((sum: number, item: any) => sum + (item.artwork.price * item.quantity), 0) + (shippingDetails.shippingFee || 0);
-  
+
   const { data: parentOrder, error: parentError } = await supabase
     .from("orders")
     .insert({
@@ -129,13 +129,13 @@ export const createOrderFromCart = async (userId: string, shippingDetails: {
         .select("quantity")
         .eq("id", item.artwork_id)
         .single();
-      
+
       if (artwork) {
         const newQty = Math.max(0, artwork.quantity - item.quantity);
         await supabase.from("artworks").update({ quantity: newQty }).eq("id", item.artwork_id);
       }
     }
-    
+
     createdOrders.push(order);
   }
 
@@ -166,7 +166,7 @@ export const createOrder = async (orderData: {
       .select("quantity, title")
       .eq("id", item.artwork_id)
       .single();
-    
+
     if (!artwork || artwork.quantity < item.quantity) {
       throw new Error(`عذراً، الكمية المطلوبة من "${artwork?.title || 'العمل'}" غير متوفرة حالياً`);
     }
@@ -236,7 +236,7 @@ export const createOrder = async (orderData: {
       .select("quantity")
       .eq("id", item.artwork_id)
       .single();
-    
+
     if (artwork) {
       const newQty = Math.max(0, artwork.quantity - item.quantity);
       await supabase.from("artworks").update({ quantity: newQty }).eq("id", item.artwork_id);
@@ -288,7 +288,7 @@ export const getArtistOrders = async (artistId: string) => {
 
 export const getUserOrders = async (userId: string) => {
   const supabase = getSupabase();
-  
+
   // Fetch parent orders with their child orders (self-join via parent_order_id)
   const { data, error } = await supabase
     .from("orders")
@@ -318,25 +318,25 @@ export const getUserOrders = async (userId: string) => {
   // Calculate dynamic parent status based on child orders
   const calculateParentStatus = (children: any[]) => {
     if (!children || children.length === 0) return 'pending';
-    
+
     const allCancelledOrRejected = children.every(o => o.status === 'cancelled' || o.status === 'rejected');
     if (allCancelledOrRejected) return 'cancelled';
-  
+
     const validOrders = children.filter(o => o.status !== 'cancelled' && o.status !== 'rejected');
     if (validOrders.length === 0) return 'cancelled';
-  
+
     const allDelivered = validOrders.every(o => o.status === 'delivered');
     if (allDelivered) return 'completed';
-  
+
     const allShippedOrDelivered = validOrders.every(o => o.status === 'shipped' || o.status === 'delivered');
     if (allShippedOrDelivered) return 'shipped';
-  
+
     const anyShippedOrDelivered = validOrders.some(o => o.status === 'shipped' || o.status === 'delivered');
     if (anyShippedOrDelivered) return 'partially_shipped';
-  
+
     const anyProcessing = validOrders.some(o => o.status === 'approved' || o.status === 'preparing');
     if (anyProcessing) return 'processing';
-  
+
     return 'pending';
   };
 
@@ -372,37 +372,40 @@ export const updateOrderStatus = async (orderId: string, userId: string, role: s
 
   if (fetchError || !order) throw new Error("الطلب غير موجود");
 
-  // 2. Permission check
-  if (role === 'artist' && order.artist_id !== userId) {
-    throw new Error("ليس لديك صلاحية لتعديل هذا الطلب");
-  }
-  if (role === 'user' && order.user_id !== userId) {
+  // 2. Relationship check
+  const isBuyer = order.user_id === userId;
+  const isSeller = order.artist_id === userId;
+
+  if (!isBuyer && !isSeller) {
     throw new Error("ليس لديك صلاحية لتعديل هذا الطلب");
   }
 
   // 3. Workflow rules
-  // Only artist can approve/reject/prepare/ship
+  // Only the Seller (Artist) can approve/reject/prepare/ship
   const artistStatuses: OrderStatus[] = ['approved', 'rejected', 'preparing', 'shipped'];
-  if (artistStatuses.includes(newStatus) && role !== 'artist') {
-    throw new Error("فقط الفنان يمكنه تغيير الحالة لهذه المرحلة");
+  if (artistStatuses.includes(newStatus)) {
+    if (!isSeller) {
+      throw new Error("فقط الفنان صاحب العمل يمكنه تغيير الحالة لهذه المرحلة");
+    }
   }
 
-  // User can only cancel
-  if (newStatus === 'cancelled' && role !== 'user') {
-    throw new Error("فقط المشتري يمكنه إلغاء الطلب");
-  }
-
-  // Check if cancellation is allowed (only before shipping)
+  // User can only cancel or mark as delivered
   if (newStatus === 'cancelled') {
+    if (!isBuyer) {
+      throw new Error("فقط المشتري يمكنه إلغاء الطلب");
+    }
+    
+    // Check if cancellation is allowed (only before shipping)
     const forbiddenForCancellation: OrderStatus[] = ['shipped', 'delivered'];
     if (forbiddenForCancellation.includes(order.status)) {
       throw new Error("لا يمكن إلغاء الطلب بعد شحنه");
     }
   }
 
-  // Only user can mark as delivered
-  if (newStatus === 'delivered' && role !== 'user') {
-    throw new Error("فقط المشتري يمكنه تأكيد استلام الطلب");
+  if (newStatus === 'delivered') {
+    if (!isBuyer) {
+      throw new Error("فقط المشتري يمكنه تأكيد استلام الطلب");
+    }
   }
 
   // 4. Update
@@ -423,12 +426,12 @@ export const updateOrderStatus = async (orderId: string, userId: string, role: s
         .from("order_items")
         .select("artwork_id, quantity")
         .eq("order_id", orderId);
-      
+
       if (items && items.length > 0) {
         const cartService = require("./cart.service");
         const cartData = await cartService.getCartByUserId(order.user_id);
         const cartId = cartData.cartId;
-        
+
         for (const item of items) {
           // Restore inventory
           const { data: artwork } = await supabase
@@ -436,7 +439,7 @@ export const updateOrderStatus = async (orderId: string, userId: string, role: s
             .select("quantity")
             .eq("id", item.artwork_id)
             .single();
-          
+
           if (artwork) {
             await supabase
               .from("artworks")

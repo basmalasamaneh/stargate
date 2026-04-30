@@ -66,12 +66,13 @@ describe("GET /api/artists", () => {
     expect(mockGetAllArtists).toHaveBeenCalledTimes(1);
   });
 
-  it("should return 401 when token is missing", async () => {
+  it("should return 200 even when token is missing (public route)", async () => {
+    mockGetAllArtists.mockResolvedValueOnce([]);
     const res = await request(app).get("/api/v1/artists");
 
-    expect(res.status).toBe(401);
-    expect(res.body.status).toBe("error");
-    expect(mockGetAllArtists).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("success");
+    expect(mockGetAllArtists).toHaveBeenCalledTimes(1);
   });
 
   it("should return 500 on service error", async () => {
@@ -161,11 +162,12 @@ describe("GET /api/artists/:id/artworks", () => {
     });
   });
 
-  it("should return 401 when token is missing", async () => {
+  it("should return 200 even when token is missing (public route)", async () => {
+    mockGetArtistArtworks.mockResolvedValueOnce({ artworks: [] });
     const res = await request(app).get("/api/v1/artists/artist-1/artworks");
 
-    expect(res.status).toBe(401);
-    expect(res.body.status).toBe("error");
-    expect(mockGetArtistArtworks).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("success");
+    expect(mockGetArtistArtworks).toHaveBeenCalledTimes(1);
   });
 });
