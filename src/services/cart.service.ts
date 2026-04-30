@@ -16,7 +16,7 @@ const getOrCreateCartId = async (userId: string) => {
       .insert({ user_id: userId })
       .select("id")
       .single();
-    
+
     if (createError) throw new Error("تعذر إنشاء سلة للمستخدم");
     return newCart.id;
   }
@@ -70,7 +70,7 @@ export const getCartByUserId = async (userId: string) => {
 
 export const updateCartItemQuantity = async (cartId: string, itemId: string, quantity: number) => {
   const supabase = getSupabase();
-  
+
   if (quantity < 1) {
     return removeItemFromCart(cartId, itemId);
   }
@@ -120,7 +120,7 @@ export const addItemToCart = async (cartId: string, input: AddToCartInput) => {
     .select("quantity")
     .eq("id", artworkId)
     .single();
-  
+
   if (!artwork) throw new Error("العمل الفني غير موجود");
 
   // 2. Check if item already exists

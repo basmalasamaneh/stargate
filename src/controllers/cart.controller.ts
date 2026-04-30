@@ -6,7 +6,7 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
     const authUserId = (req as any).userId;
     const { cartId, userId } = req.params;
     if (!authUserId) throw new Error("User ID not found in request");
-    
+
     let cart;
     if (cartId) {
       cart = await cartService.getCartByCartId(cartId as string);
@@ -15,7 +15,7 @@ export const getCart = async (req: Request, res: Response): Promise<void> => {
     } else {
       throw new Error("Cart ID or User ID is required");
     }
-    
+
     res.status(200).json({ status: "success", data: cart });
   } catch (error: any) {
     console.error("GET /cart Error:", error);
@@ -28,7 +28,7 @@ export const addItem = async (req: Request, res: Response): Promise<void> => {
     const userId = (req as any).userId;
     const { cartId } = req.params;
     if (!userId) throw new Error("User ID not found in request");
-    
+
     const cart = await cartService.addItemToCart(cartId as string, req.body);
     res.status(200).json({ status: "success", message: "تمت إضافة المنتج للسلة", data: cart });
   } catch (error: any) {
@@ -42,7 +42,7 @@ export const deleteItem = async (req: Request, res: Response): Promise<void> => 
     const userId = (req as any).userId;
     const { cartId, itemId } = req.params;
     if (!userId) throw new Error("User ID not found in request");
-    
+
     const cart = await cartService.removeItemFromCart(cartId as string, itemId as string);
     res.status(200).json({ status: "success", message: "تم حذف المنتج من السلة", data: cart });
   } catch (error: any) {
@@ -57,7 +57,7 @@ export const updateQuantity = async (req: Request, res: Response): Promise<void>
     const { cartId, itemId } = req.params;
     const { quantity } = req.body;
     if (!userId) throw new Error("User ID not found in request");
-    
+
     const cart = await cartService.updateCartItemQuantity(cartId as string, itemId as string, quantity);
     res.status(200).json({ status: "success", message: "تم تحديث الكمية", data: cart });
   } catch (error: any) {
